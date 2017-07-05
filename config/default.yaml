@@ -1,0 +1,66 @@
+# Defines the HTTP endpoint for subscriptions
+# Has to be present, even if no subscription-triggerred tasks are defined below.
+endpoint:
+  # Unique ID of the Feeder instance
+  id: tb1
+  # URL at which Feeder endpoint can be reached
+  url: http://feeder
+  # Host/port to which Feeder should bind
+  host: 0.0.0.0
+  port: 8000
+
+# Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
+elasticsearch:
+  host: elasticsearch
+  port: 9200
+
+# Defines the default Orion connection settings. Can be specialized in the same section in a task
+orion:
+  # MUST NOT end with slash
+  uri: http://broker.waziup.io
+
+# Defines (multiple) tasks. Each task defines sensors and target index in ElasticSearch
+tasks:
+#- trigger: subscription
+
+#  Trigger types are: "time", "subscription"
+#  If it is "time", Feeder periodically polls Orion with the period specified below
+#  If it is "subscription", Feeder listens to notifications and recreates the subscription every period below.
+#  Renewal of the subscription includes new listing of sensors, which means that after the "period" time
+#  new sensors will be automatically included in the subscription.
+#  Note that Orion sends a notification every time a subscription is recreated.
+
+#  period: 5000
+
+# Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
+# throttling: 5
+
+#  Specifies task-level Orion settings
+#  Entries from the global "orion" are used here as defaults. They can be overridden here. The same way,
+#  the fields here can be moved to the global "orion".
+
+#  orion:
+#    service: watersense
+#    servicePath: /FARM1/TESTS
+
+#  Specifies task-level Elasticsearch settings
+#  Entries from the global "elasticsearch" are used here as defaults. They can be overridden here. The same way,
+#  the fields here can be moved to global "elasticsearch".
+
+#  elasticsearch:
+#    index: test
+
+#  Specifies the filter over the sensors discovered.
+#  filter:
+
+#  If set, only entities listed below will be considered. If missing, no filtering by IDs is done
+#    ids:
+#    - WS_FARM1_Sensor2
+#    - WS_FARM1_Sensor3
+#    - WS_FARM1_Sensor4
+
+#  If set, only attributes listed below will be considered. If missing, no filtering by attributes is done.
+#    attributes:
+#    - SM1
+#    - SM2
+

@@ -1,0 +1,26 @@
+endpoint:
+  id: tb1
+  url: http://feeder.tb.gerobit.com
+
+elasticsearch:
+  host: elasticsearch
+  port: 9200
+
+orion:
+  # MUST NOT end with slash
+  uri: http://broker.waziup.io
+
+tasks:
+- trigger: subscription
+  orion:
+    service: watersense
+    servicePath: /FARM1/TESTS
+
+  elasticsearch:
+    index: test
+
+  filter:
+    attributes:
+    - SM1
+    - SM2
+
