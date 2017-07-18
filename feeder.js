@@ -36,72 +36,97 @@ class Task {
 
     async init() {
         // Create index in Elasticsearch if it does not exist yet
-        const indexExists = await this.es.indices.exists({index: this.esConfig.index});
+        //const indexExists = await this.es.indices.exists({index: this.esConfig.index});
+        for(service in this.conf.orion.service) {
+            for(sp in fetchSps(service)) {
+                let indexName = getIndex(service, sp);
+                const indexExists = await this.es.indices.exists({ index: indexName });
 
-        if (!indexExists) {
-            await this.es.indices.create({
-                index: this.esConfig.index,
-                body: {
-                    mappings: {
-                        sensingNumber: {
-                            properties: {
-                                name: {
-                                    type: 'keyword'
-                                },
-                                attribute: {
-                                    type: 'keyword'
-                                },
-                                time: {
-                                    type: 'date'
-                                },
-                                value: {
-                                    type: 'double'
+                if (!indexExists) {
+                    await this.es.indices.create({
+                        index: indexName,
+                        body: {
+                            mappings: {
+                                sensingNumber: {
+                                    properties: {
+                                        name: {
+                                            type: 'keyword'
+                                        },
+                                        attribute: {
+                                            type: 'keyword'
+                                        },
+                                        time: {
+                                            type: 'date'
+                                        },
+                                        value: {
+                                            type: 'double'
+                                        }
+                                    }
                                 }
                             }
                         }
+                    })
+                }
+            }
+
+            //based on indexName
+            // Discard all existing subscriptions that could relate to this task (or some other from this instance of feeder)
+            const expectedDesc = this._getSubscriptionDesc(service);
+            try {
+                const resp = await rp({
+                    uri: `${this.orionConfig.uri}/v2/subscriptions`,
+                    headers: {
+                        'Fiware-Service': service,
+                        'Fiware-ServicePath': this.orionConfig.servicePath
+                    },
+                    json: true
+                });
+
+                for (const entry of resp) {
+                    if (entry.description === expectedDesc) {
+                        const resp = await rp({
+                            method: 'DELETE',
+                            uri: `${this.orionConfig.uri}/v2/subscriptions/${entry.id}`,
+                            headers: {
+                                'Fiware-Service': service,
+                                'Fiware-ServicePath': this.orionConfig.servicePath
+                            },
+                            json: true
+                        });
                     }
                 }
-            })
+            } catch (err) {
+                log.error(err);
+            }
         }
+    }
 
-        // Discard all existing subscriptions that could relate to this task (or some other from this instance of feeder)
-        const expectedDesc = this._getSubscriptionDesc();
-
+    async fetchSps(service) {
         try {
             const resp = await rp({
-                uri: `${this.orionConfig.uri}/v2/subscriptions`,
+                uri: `${this.orionConfig.uri}/v2/entities?attrs=servicePath`,
                 headers: {
-                    'Fiware-Service': this.orionConfig.service,
-                    'Fiware-ServicePath': this.orionConfig.servicePath
+                    'Fiware-Service': service,
+                    'Fiware-ServicePath': '/#'
                 },
                 json: true
             });
 
-            for (const entry of resp) {
-                if (entry.description === expectedDesc) {
-                    const resp = await rp({
-                        method: 'DELETE',
-                        uri: `${this.orionConfig.uri}/v2/subscriptions/${entry.id}`,
-                        headers: {
-                            'Fiware-Service': this.orionConfig.service,
-                            'Fiware-ServicePath': this.orionConfig.servicePath
-                        },
-                        json: true
-                    });
-                }
-            }
+            const spSet = new Set(resp);
+            return spSet;
         } catch (err) {
             log.error(err);
+            return [];
         }
     }
 
-    async fetchSensors() {
+    async fetchSensors(service) {
         try {
             const resp = await rp({
-                uri: `${this.orionConfig.uri}/v2/entities`,
+                uri: `${this.orionConfig.uri}/v2/entities?attrs=dateModified,servicePath,*`,
                 headers: {
-                    'Fiware-Service': this.orionConfig.service,
-                    'Fiware-ServicePath': this.orionConfig.servicePath
+                    'Fiware-Service': service,
+                    'Fiware-ServicePath': '/#'
                 },
                 json: true
             });
@@ -122,7 +147,6 @@ class Task {
             const results = [];
 
             for (const entry of data) {
-
                 if (!idsSet || idsSet.has(entry.id)) {
                     const attributes = [];
 
@@ -138,6 +162,7 @@ class Task {
 
                     results.push({
                         name: entry.id,
+                        servicePath: entry.servicePath.value,
                         attributes
                     });
                 }
@@ -151,18 +176,29 @@ class Task {
         }
     }
 
-    async feedToElasticsearch(sensors) {
+    getIndex(service, servicePath) {
+        let index = service;
+        if (servicePath !== '/') {
+            const spPart = servicePath.replace(/\//g, "-");
+            index = index.concat(spPart);
+        }
+        return index
+    }
+
+    async feedToElasticsearch(service, sensors) {
         const docTime = new Date();
         const bulkBody = [];
 
         for (const sensor of sensors) {
+            let index = getIndex(service, sensor.servicePath);
+
             for (const attribute of sensor.attributes) {
                 if (attribute.type === 'Number') {
-                    log.info(`Feeding number value: ${sensor.name}.${attribute.name} @ ${docTime} = ${attribute.value}`);
+                    log.info(`Feeding sensor number value: ${service} ${sensor.name}.${attribute.name} @ ${docTime} = ${attribute.value}`);
 
                     bulkBody.push({
                         index: {
-                            _index: this.esConfig.index,
+                            _index: index,
                             _type: 'sensingNumber'
                         }
                     });
@@ -175,21 +211,21 @@ class Task {
                     });
 
                 } else {
-                    log.error(`Unsupported attribute type: ${attribute.type} in ${sensor.name}.${attribute.name}`);
+                    log.error(`Unsupported attribute type: ${attribute.type} in ${service} ${sensor.name}.${attribute.name}`);
                 }
             }
         }
 
         if (bulkBody.length > 0) {
-            await this.es.bulk({body: bulkBody});
+            await this.es.bulk({ body: bulkBody });
         }
     }
 
-    _getSubscriptionDesc() {
-        return `Orion-Elasticsearch Feeder instance ${config.get('endpoint.id')}`;
+    _getSubscriptionDesc(service) {
+        return `Orion-Elasticsearch Feeder instance ${service} ${config.get('endpoint.id')}`;
     }
 
-    subscribe(sensors) {
+    subscribe(service, sensors) {
         const entities = sensors.map(sensor => {
             return {
                 id: sensor.name
@@ -199,7 +235,7 @@ class Task {
         log.info(`Subscribing to entities: ${entities.map(entity => entity.id).join(', ')}`);
 
         const sub = {
-            description: this._getSubscriptionDesc(),
+            description: this._getSubscriptionDesc(service),
             subject: {
                 entities
             },
@@ -219,7 +255,7 @@ class Task {
                 method: 'POST',
                 uri: `${this.orionConfig.uri}/v2/subscriptions`,
                 headers: {
-                    'Fiware-Service': this.orionConfig.service,
+                    'Fiware-Service': service,
                     'Fiware-ServicePath': this.orionConfig.servicePath
                 },
                 body: sub,
@@ -231,7 +267,7 @@ class Task {
                     if (!msg.headers.location) {
                         log.error('Subscription failed.')
                     } else {
-                        this.subscriptionId = msg.headers.location.replace(/.*v2\/subscriptions\/(.*)/,'$1');
+                        this.subscriptionId = msg.headers.location.replace(/.*v2\/subscriptions\/(.*)/, '$1');
                     }
                 }
 
@@ -240,13 +276,13 @@ class Task {
         });
     }
 
-    async unsubscribe() {
+    async unsubscribe(service) {
         try {
             const resp = await rp({
                 method: 'DELETE',
                 uri: `${this.orionConfig.uri}/v2/subscriptions/${this.subscriptionId}`,
                 headers: {
-                    'Fiware-Service': this.orionConfig.service,
+                    'Fiware-Service': service,
                     'Fiware-ServicePath': this.orionConfig.servicePath
                 },
                 json: true
@@ -257,25 +293,29 @@ class Task {
     }
 
     async doPeriod() {
-        if (this.subscriptionId) {
-            await this.unsubscribe();
-        }
+        for(service in this.conf.orion.service) {
 
-        const data = await this.fetchSensors();
-        const sensors = await this.filterSensors(data);
-
-        if (this.conf.trigger === TriggerTypes.Subscription) {
-            await this.subscribe(sensors);
-        } else {
-            await this.feedToElasticsearch(sensors);
+            if (this.subscriptionId) {
+                await this.unsubscribe(service);
+            }
+            
+            const data = await this.fetchSensors(service);
+            const sensors = await this.filterSensors(data);
+            if (this.conf.trigger === TriggerTypes.Subscription) {
+                await this.subscribe(service, sensors);
+            } else {
+                await this.feedToElasticsearch(service, sensors);
+            }
         }
     }
 }
 
 async function feedData(taskCid, data) {
     const task = tasks[taskCid];
-    const sensors = await task.filterSensors(data);
-    await task.feedToElasticsearch(sensors);
+    for(service in task.service) {
+        const sensors = await task.filterSensors(data);
+        await task.feedToElasticsearch(service, sensors);
+    }
 }
 
 async function run() {
@@ -293,7 +333,7 @@ async function run() {
     let accumulatedDelay = 0;
     for (const taskCid in tasks) {
         const task = tasks[taskCid];
-    	//log.info(`Run method: task ${task} taskCid ${taskCid}`);
+        //log.info(`Run method: task ${task} taskCid ${taskCid}`);
         setTimeout(async () => {
             await task.doPeriod();
             if (task.conf.period) {

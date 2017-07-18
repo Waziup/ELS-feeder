@@ -11,7 +11,7 @@ endpoint:
 
 # Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
 elasticsearch:
-  host: elasticsearch
+  host: elasticsearch.waziup.io
   port: 9200
 
 # Defines the default Orion connection settings. Can be specialized in the same section in a task
@@ -21,7 +21,7 @@ orion:
 
 # Defines (multiple) tasks. Each task defines sensors and target index in ElasticSearch
 tasks:
-#- trigger: subscription
+- trigger: subscription
 
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
@@ -30,7 +30,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-#  period: 5000
+  period: 5000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5
@@ -39,9 +39,11 @@ tasks:
 #  Entries from the global "orion" are used here as defaults. They can be overridden here. The same way,
 #  the fields here can be moved to the global "orion".
 
-#  orion:
-#    service: watersense
-#    servicePath: /FARM1/TESTS
+  orion:
+    service: 
+    - watersense
+    - waziup
+    servicePath: /
 
 #  Specifies task-level Elasticsearch settings
 #  Entries from the global "elasticsearch" are used here as defaults. They can be overridden here. The same way,

@@ -21,36 +21,10 @@ data:
     - trigger: time
       period: 300000
       orion:
-        service: watersense
-        servicePath: /FARM2/TESTS
-      elasticsearch:
-        index: farm2
-      filter:
-        attributes:
-        - SM1
-        - SM2
-    - trigger: time
-      period: 300000
-      orion:
-        service: watersense
-        servicePath: /FARM1/TESTS
-      elasticsearch:
-        index: farm1
-      filter:
-        attributes:
-        - SM1
-        - SM2
-    - trigger: time
-      period: 300000
-      orion:
-        service: watersense
-        servicePath: /FARM3/TESTS
-      elasticsearch:
-        index: chohan
-      filter:
-        attributes:
-        - SM1
-        - SM2
+        service: 
+        - watersense
+        - waziup
+        servicePath: /
 
 ---
 apiVersion: extensions/v1beta1
