@@ -31,22 +31,55 @@ class Task {
             // , log: 'trace'
         });
 
+        this.indexExists = new Map();
         this.cid = shortid.generate();
     }
 
     async init() {
-        // Create index in Elasticsearch if it does not exist yet
-        //const indexExists = await this.es.indices.exists({index: this.esConfig.index});
-        console.log(this.conf.orion.service);
-        for(let service of this.conf.orion.service) {
-            console.log(service);
-            let allSps = await this.fetchSps(service);
-            for(let sp of allSps) {
-                console.log(sp);
-                let indexName = this.getIndex(service, sp);
-                const indexExists = await this.es.indices.exists({ index: indexName });
+        //based on indexName
+        // Discard all existing subscriptions that could relate to this task (or some other from this instance of feeder)
+        const expectedDesc = this._getSubscriptionDesc();
+        try {
+            const resp = await rp({
+                uri: `${this.orionConfig.uri}/v2/subscriptions`,
+                headers: {
+                    'Fiware-Service': this.orionConfig.service,
+                    'Fiware-ServicePath': this.orionConfig.servicePath
+                },
+                json: true
+            });
 
+            for (const entry of resp) {
+                if (entry.description === expectedDesc) {
+                    const resp = await rp({
+                        method: 'DELETE',
+                        uri: `${this.orionConfig.uri}/v2/subscriptions/${entry.id}`,
+                        headers: {
+                            'Fiware-Service': this.orionConfig.service,
+                            'Fiware-ServicePath': this.orionConfig.servicePath
+                        },
+                        json: true
+                    });
+                }
+            }
+        } catch (err) {
+            log.error(err);
+        }
+    }
+
+    async createIndexes() {
+        // Create index in Elasticsearch if it does not exist yet
+        let allSps = await this.fetchSps();
+        for (let sp of allSps) {
+            console.log(sp);
+            let indexName = this.getIndex(sp);
+            console.log(indexName);
+            //let indexExists = true; this.indexExists.indexName === true? true:
+            if (this.indexExists.has(indexName) === false) {
+                let indexExists = await this.es.indices.exists({ index: indexName });
+            
                 if (!indexExists) {
+                    this.indexExists.indexName = true;
                     await this.es.indices.create({
                         index: indexName,
                         body: {
@@ -72,46 +105,16 @@ class Task {
                     })
                 }
             }
-
-            //based on indexName
-            // Discard all existing subscriptions that could relate to this task (or some other from this instance of feeder)
-            const expectedDesc = this._getSubscriptionDesc(service);
-            try {
-                const resp = await rp({
-                    uri: `${this.orionConfig.uri}/v2/subscriptions`,
-                    headers: {
-                        'Fiware-Service': service,
-                        'Fiware-ServicePath': this.orionConfig.servicePath
-                    },
-                    json: true
-                });
-
-                for (const entry of resp) {
-                    if (entry.description === expectedDesc) {
-                        const resp = await rp({
-                            method: 'DELETE',
-                            uri: `${this.orionConfig.uri}/v2/subscriptions/${entry.id}`,
-                            headers: {
-                                'Fiware-Service': service,
-                                'Fiware-ServicePath': this.orionConfig.servicePath
-                            },
-                            json: true
-                        });
-                    }
-                }
-            } catch (err) {
-                log.error(err);
-            }
         }
     }
 
-    async fetchSps(service) {
+    async fetchSps() {
         try {
             const resp = await rp({
                 uri: `${this.orionConfig.uri}/v2/entities?attrs=servicePath`,
                 headers: {
-                    'Fiware-Service': service,
-                    'Fiware-ServicePath': '/#'
+                    'Fiware-Service': this.orionConfig.service,
+                    'Fiware-ServicePath': this.orionConfig.servicePath
                 },
                 json: true
             });
@@ -130,13 +133,13 @@ class Task {
         }
     }
 
-    async fetchSensors(service) {
+    async fetchSensors() {
         try {
             const resp = await rp({
                 uri: `${this.orionConfig.uri}/v2/entities?attrs=dateModified,servicePath,*`,
                 headers: {
-                    'Fiware-Service': service,
-                    'Fiware-ServicePath': '/#'
+                    'Fiware-Service': this.orionConfig.service,
+                    'Fiware-ServicePath': this.orionConfig.servicePath
                 },
                 json: true
             });
@@ -186,8 +189,8 @@ class Task {
         }
     }
 
-    getIndex(service, servicePath) {
-        let index = service;
+    getIndex(servicePath) {
+        let index = this.orionConfig.service;
         if (servicePath !== '/') {
             const spPart = servicePath.replace(/\//g, "-");
             index = index.concat(spPart);
@@ -195,16 +198,17 @@ class Task {
         return index.toLowerCase();
     }
 
-    async feedToElasticsearch(service, sensors) {
+    async feedToElasticsearch(sensors) {
         const docTime = new Date();
         const bulkBody = [];
-
+        
+        await this.createIndexes();
         for (const sensor of sensors) {
-            let index = this.getIndex(service, sensor.servicePath);
+            let index = this.getIndex(sensor.servicePath);
 
             for (const attribute of sensor.attributes) {
                 if (attribute.type === 'Number') {
-                    log.info(`Feeding sensor number value: ${service} ${sensor.name}.${attribute.name} @ ${docTime} = ${attribute.value}`);
+                    log.info(`Feeding sensor number value: ${this.orionConfig.service} ${sensor.name}.${attribute.name} @ ${docTime} = ${attribute.value}`);
 
                     bulkBody.push({
                         index: {
@@ -221,7 +225,7 @@ class Task {
                     });
 
                 } else {
-                    log.error(`Unsupported attribute type: ${attribute.type} in ${service} ${sensor.name}.${attribute.name}`);
+                    log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
                 }
             }
         }
@@ -231,21 +235,21 @@ class Task {
         }
     }
 
-    _getSubscriptionDesc(service) {
-        return `Orion-Elasticsearch Feeder instance ${service} ${config.get('endpoint.id')}`;
+    _getSubscriptionDesc() {
+        return `Orion-Elasticsearch Feeder instance ${this.orionConfig.service} ${config.get('endpoint.id')}`;
     }
 
-    subscribe(service, sensors) {
+    subscribe(sensors) {
         const entities = sensors.map(sensor => {
             return {
                 id: sensor.name
             };
         });
 
-        log.info(`Subscribing to entities: ${service} ${this.orionConfig.servicePath} ${entities.map(entity => entity.id).join(', ')}`);
+        log.info(`Subscribing to entities: ${this.orionConfig.service} ${this.orionConfig.servicePath} ${entities.map(entity => entity.id).join(', ')}`);
 
         const sub = {
-            description: this._getSubscriptionDesc(service),
+            description: this._getSubscriptionDesc(),
             subject: {
                 entities
             },
@@ -260,14 +264,16 @@ class Task {
             sub.throttling = this.conf.throttling;
         }
 
-        console.log(sub);
+        /*console.log(sub);
+        console.log("s and sp");
+        console.log(service, this.orionConfig.servicePath);*/
 
         return new Promise(resolve => {
             rp({
                 method: 'POST',
                 uri: `${this.orionConfig.uri}/v2/subscriptions`,
                 headers: {
-                    'Fiware-Service': service,
+                    'Fiware-Service': this.orionConfig.service,
                     'Fiware-ServicePath': this.orionConfig.servicePath
                 },
                 body: sub,
@@ -288,13 +294,13 @@ class Task {
         });
     }
 
-    async unsubscribe(service) {
+    async unsubscribe() {
         try {
             const resp = await rp({
                 method: 'DELETE',
                 uri: `${this.orionConfig.uri}/v2/subscriptions/${this.subscriptionId}`,
                 headers: {
-                    'Fiware-Service': service,
+                    'Fiware-Service': this.orionConfig.service,
                     'Fiware-ServicePath': this.orionConfig.servicePath
                 },
                 json: true
@@ -305,29 +311,24 @@ class Task {
     }
 
     async doPeriod() {
-        for(let service of this.conf.orion.service) {
+        if (this.subscriptionId) {
+            await this.unsubscribe();
+        }
 
-            if (this.subscriptionId) {
-                await this.unsubscribe(service);
-            }
-            
-            const data = await this.fetchSensors(service);
-            const sensors = await this.filterSensors(data);
-            if (this.conf.trigger === TriggerTypes.Subscription) {
-                await this.subscribe(service, sensors);
-            } else {
-                await this.feedToElasticsearch(service, sensors);
-            }
+        const data = await this.fetchSensors();
+        const sensors = await this.filterSensors(data);
+        if (this.conf.trigger === TriggerTypes.Subscription) {
+            await this.subscribe(sensors);
+        } else {
+            await this.feedToElasticsearch(sensors);
         }
     }
 }
 
 async function feedData(taskCid, data) {
     const task = tasks[taskCid];
-    for(let service of task.service) {
-        const sensors = await task.filterSensors(data);
-        await task.feedToElasticsearch(service, sensors);
-    }
+    const sensors = await task.filterSensors(data);
+    await task.feedToElasticsearch(sensors);
 }
 
 async function run() {
