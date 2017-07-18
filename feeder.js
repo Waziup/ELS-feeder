@@ -37,9 +37,13 @@ class Task {
     async init() {
         // Create index in Elasticsearch if it does not exist yet
         //const indexExists = await this.es.indices.exists({index: this.esConfig.index});
-        for(service in this.conf.orion.service) {
-            for(sp in fetchSps(service)) {
-                let indexName = getIndex(service, sp);
+        console.log(this.conf.orion.service);
+        for(let service of this.conf.orion.service) {
+            console.log(service);
+            let allSps = await this.fetchSps(service);
+            for(let sp of allSps) {
+                console.log(sp);
+                let indexName = this.getIndex(service, sp);
                 const indexExists = await this.es.indices.exists({ index: indexName });
 
                 if (!indexExists) {
@@ -112,7 +116,13 @@ class Task {
                 json: true
             });
 
-            const spSet = new Set(resp);
+            const spSet = new Set();
+
+            for (const entry of resp) {
+                spSet.add(entry.servicePath.value);
+            }
+
+            console.log(spSet);
             return spSet;
         } catch (err) {
             log.error(err);
@@ -182,7 +192,7 @@ class Task {
             const spPart = servicePath.replace(/\//g, "-");
             index = index.concat(spPart);
         }
-        return index
+        return index.toLowerCase();
     }
 
     async feedToElasticsearch(service, sensors) {
@@ -190,7 +200,7 @@ class Task {
         const bulkBody = [];
 
         for (const sensor of sensors) {
-            let index = getIndex(service, sensor.servicePath);
+            let index = this.getIndex(service, sensor.servicePath);
 
             for (const attribute of sensor.attributes) {
                 if (attribute.type === 'Number') {
@@ -232,7 +242,7 @@ class Task {
             };
         });
 
-        log.info(`Subscribing to entities: ${entities.map(entity => entity.id).join(', ')}`);
+        log.info(`Subscribing to entities: ${service} ${this.orionConfig.servicePath} ${entities.map(entity => entity.id).join(', ')}`);
 
         const sub = {
             description: this._getSubscriptionDesc(service),
@@ -249,6 +259,8 @@ class Task {
         if (this.conf.throttling) {
             sub.throttling = this.conf.throttling;
         }
+
+        console.log(sub);
 
         return new Promise(resolve => {
             rp({
@@ -293,7 +305,7 @@ class Task {
     }
 
     async doPeriod() {
-        for(service in this.conf.orion.service) {
+        for(let service of this.conf.orion.service) {
 
             if (this.subscriptionId) {
                 await this.unsubscribe(service);
@@ -312,7 +324,7 @@ class Task {
 
 async function feedData(taskCid, data) {
     const task = tasks[taskCid];
-    for(service in task.service) {
+    for(let service of task.service) {
         const sensors = await task.filterSensors(data);
         await task.feedToElasticsearch(service, sensors);
     }

@@ -12,7 +12,7 @@ endpoint:
 # Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
 elasticsearch:
   host: elasticsearch.waziup.io
-  port: 9200
+  port: 80
 
 # Defines the default Orion connection settings. Can be specialized in the same section in a task
 orion:
@@ -30,7 +30,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-  period: 5000
+  period: 500000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5
