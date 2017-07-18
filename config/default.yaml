@@ -2,12 +2,12 @@
 # Has to be present, even if no subscription-triggerred tasks are defined below.
 endpoint:
   # Unique ID of the Feeder instance
-  id: tb1
+  id: tb2
   # URL at which Feeder endpoint can be reached
-  url: http://feeder
+  url: http://feeder2
   # Host/port to which Feeder should bind
   host: 0.0.0.0
-  port: 8000
+  port: 9000
 
 # Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
 elasticsearch:
@@ -21,6 +21,28 @@ orion:
 
 # Defines (multiple) tasks. Each task defines sensors and target index in ElasticSearch
 tasks:
+#- trigger: time
+
+#  Trigger types are: "time", "subscription"
+#  If it is "time", Feeder periodically polls Orion with the period specified below
+#  If it is "subscription", Feeder listens to notifications and recreates the subscription every period below.
+#  Renewal of the subscription includes new listing of sensors, which means that after the "period" time
+#  new sensors will be automatically included in the subscription.
+#  Note that Orion sends a notification every time a subscription is recreated.
+
+ # period: 5000
+
+# Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
+# throttling: 5
+
+#  Specifies task-level Orion settings
+#  Entries from the global "orion" are used here as defaults. They can be overridden here. The same way,
+#  the fields here can be moved to the global "orion".
+
+  #orion:
+  #  service: watersense
+  #  servicePath: /#
+
 - trigger: time
 
 #  Trigger types are: "time", "subscription"
@@ -30,29 +52,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-  period: 5000
-
-# Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
-# throttling: 5
-
-#  Specifies task-level Orion settings
-#  Entries from the global "orion" are used here as defaults. They can be overridden here. The same way,
-#  the fields here can be moved to the global "orion".
-
-  orion:
-    service: watersense
-    servicePath: /#
-
-- trigger: subscription
-
-#  Trigger types are: "time", "subscription"
-#  If it is "time", Feeder periodically polls Orion with the period specified below
-#  If it is "subscription", Feeder listens to notifications and recreates the subscription every period below.
-#  Renewal of the subscription includes new listing of sensors, which means that after the "period" time
-#  new sensors will be automatically included in the subscription.
-#  Note that Orion sends a notification every time a subscription is recreated.
-
-  period: 5000
+  period: 20000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5
@@ -63,7 +63,7 @@ tasks:
 
   orion:
     service: waziup
-    servicePath: /#
+    servicePath: /FL/#
 
 #  Specifies task-level Elasticsearch settings
 #  Entries from the global "elasticsearch" are used here as defaults. They can be overridden here. The same way,

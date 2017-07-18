@@ -10,7 +10,7 @@ const shortid = require('shortid');
 
 const delay = 500; // time between requests at start (in ms)
 
-const excludedAttributes = new Set(['id', 'type']);
+const excludedAttributes = new Set(['id', 'type', 'owner']);
 
 const tasks = {};
 
@@ -71,9 +71,9 @@ class Task {
         // Create index in Elasticsearch if it does not exist yet
         let allSps = await this.fetchSps();
         for (let sp of allSps) {
-            console.log(sp);
+            //console.log(sp);
             let indexName = this.getIndex(sp);
-            console.log(indexName);
+            //console.log(indexName);
             //let indexExists = true; this.indexExists.indexName === true? true:
             if (this.indexExists.has(indexName) === false) {
                 let indexExists = await this.es.indices.exists({ index: indexName });
@@ -125,7 +125,7 @@ class Task {
                 spSet.add(entry.servicePath.value);
             }
 
-            console.log(spSet);
+            //console.log(spSet);
             return spSet;
         } catch (err) {
             log.error(err);
@@ -205,10 +205,14 @@ class Task {
         await this.createIndexes();
         for (const sensor of sensors) {
             let index = this.getIndex(sensor.servicePath);
-
+            
             for (const attribute of sensor.attributes) {
-                if (attribute.type === 'Number') {
-                    log.info(`Feeding sensor number value: ${this.orionConfig.service} ${sensor.name}.${attribute.name} @ ${docTime} = ${attribute.value}`);
+                if (attribute.type === 'Number' || 
+                attribute.type === 'geo:json' ||
+                attribute.type === 'string' ||
+                attribute.type === 'Text' ||
+                attribute.type === 'DateTime') {
+                    log.info(`Feeding sensor value: ${this.orionConfig.service} ${sensor.name}.${attribute.name} @ ${docTime} = ${attribute.value}`);
 
                     bulkBody.push({
                         index: {

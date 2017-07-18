@@ -24,7 +24,7 @@ app.use('/api', router);
 
 async function run() {
     await new Promise(resolve => app.listen(config.get('endpoint.port'), config.get('endpoint.host'), () => resolve()));
-    log.info('Listening on port 8000');
+    log.info('Listening on port 9000');
 }
 
 module.exports.run = run;

@@ -9,6 +9,6 @@ ADD config/default.yaml /opt/feeder/config/
 WORKDIR /opt/feeder
 RUN npm install
 
-EXPOSE 8000
+EXPOSE 9000
 
 CMD ["/usr/bin/node", "index.js"]
