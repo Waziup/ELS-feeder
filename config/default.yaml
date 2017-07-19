@@ -30,7 +30,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-  period: 300000
+#  period: 300000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5
@@ -43,7 +43,7 @@ tasks:
     service: watersense
     servicePath: /#
 
-- trigger: time
+- trigger: subscription
 
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
@@ -52,7 +52,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-  period: 30000
+#  period: 30000
   #period: 300000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.

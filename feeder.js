@@ -234,10 +234,14 @@ class Task {
                     if(!!entry.servicePath)
                         sp = entry.servicePath.value;
 
+                    let dateModified = 0;
+                    if(!!entry.dateModified)
+                        dateModified = entry.dateModified.value;
 
                     results.push({
                         name: entry.id,
                         servicePath: sp,
+                        dateModified: dateModified,
                         attributes
                     });
                 }
@@ -280,9 +284,10 @@ class Task {
                     default:
                         log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
                 }
-
-                log.info(`Feeding sensor value: ${this.orionConfig.service} ${sensor.name}.${attribute.name} @ ${docTime} =`, JSON.stringify(attrVal));
-
+                
+                //${docTime}
+                log.info(`Feeding sensor value: ${this.orionConfig.service} ${sensor.name}.${attribute.name} @ ${sensor.dateModified} =`, JSON.stringify(attrVal));
+                //dateModified: sensor.dateModified docTime.getTime()
                 bulkBody.push({
                     index: {
                         _index: index,
@@ -293,7 +298,7 @@ class Task {
                 bulkBody.push({
                     name: sensor.name,
                     attribute: attribute.name,
-                    time: docTime.getTime(),
+                    time: sensor.dateModified,
                     value: attrVal
                 });
             }
