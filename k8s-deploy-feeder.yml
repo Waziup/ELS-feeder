@@ -19,7 +19,6 @@ data:
     
     tasks:
     - trigger: subscription
-      period: 1000000
       orion:
         service: waziup
         servicePath: /#
