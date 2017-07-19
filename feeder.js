@@ -229,10 +229,15 @@ class Task {
                             });
                         }
                     }
+                    
+                    let sp;
+                    if(!!entry.servicePath)
+                        sp = entry.servicePath.value;
+
 
                     results.push({
                         name: entry.id,
-                        servicePath: entry.servicePath.value,
+                        servicePath: sp,
                         attributes
                     });
                 }

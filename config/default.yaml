@@ -43,7 +43,7 @@ tasks:
     service: watersense
     servicePath: /#
 
-- trigger: subscription
+- trigger: time
 
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
