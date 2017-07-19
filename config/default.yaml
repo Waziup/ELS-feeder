@@ -21,7 +21,7 @@ orion:
 
 # Defines (multiple) tasks. Each task defines sensors and target index in ElasticSearch
 tasks:
-#- trigger: time
+- trigger: subscription
 
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
@@ -30,7 +30,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
- # period: 5000
+  period: 300000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5
@@ -39,11 +39,11 @@ tasks:
 #  Entries from the global "orion" are used here as defaults. They can be overridden here. The same way,
 #  the fields here can be moved to the global "orion".
 
-  #orion:
-  #  service: watersense
-  #  servicePath: /#
+  orion:
+    service: watersense
+    servicePath: /#
 
-- trigger: time
+- trigger: subscription
 
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
@@ -52,7 +52,8 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-  period: 20000
+  period: 30000
+  #period: 300000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5
@@ -63,7 +64,7 @@ tasks:
 
   orion:
     service: waziup
-    servicePath: /FL/#
+    servicePath: /#
 
 #  Specifies task-level Elasticsearch settings
 #  Entries from the global "elasticsearch" are used here as defaults. They can be overridden here. The same way,

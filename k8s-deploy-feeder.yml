@@ -18,11 +18,16 @@ data:
       uri: http://orion:1026
     
     tasks:
-    - trigger: time
-      period: 60000
+    - trigger: subscription
+      period: 1000000
       orion:
         service: waziup
-        servicePath: /FL/#
+        servicePath: /#
+    - trigger: time
+      period: 300000
+      orion:
+        service: watersense
+        servicePath: /#
 
 ---
 apiVersion: extensions/v1beta1
@@ -43,7 +48,7 @@ spec:
         image: waziup/feeder2
         env:
         - name: FEEDER_EXTRA_CONFIG_DIR
-          value: /etc/feeder
+          value: /etc/feeder/
         ports:
         - containerPort: 8000
         volumeMounts:

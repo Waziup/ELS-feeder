@@ -19,6 +19,74 @@ const TriggerTypes = {
     Subscription: 'subscription'
 };
 
+const body = {
+    mappings: {
+        sensingNumber: {
+            properties: {
+                name: {
+                    type: 'keyword'
+                },
+                attribute: {
+                    type: 'keyword'
+                },
+                time: {
+                    type: 'date'
+                },
+                value: {
+                    type: 'double'
+                }
+            }
+        },
+        sensingGeo: {
+            properties: {
+                name: {
+                    type: 'keyword'
+                },
+                attribute: {
+                    type: 'keyword'
+                },
+                time: {
+                    type: 'date'
+                },
+                geo: {
+                    type: 'geo_point'
+                }
+            }
+        },
+        sensingDate: {
+            properties: {
+                name: {
+                    type: 'keyword'
+                },
+                attribute: {
+                    type: 'keyword'
+                },
+                time: {
+                    type: 'date'
+                },
+                date: {
+                    type: 'date'
+                }
+            }
+        },
+        sensingText: {
+            properties: {
+                name: {
+                    type: 'keyword'
+                },
+                attribute: {
+                    type: 'keyword'
+                },
+                time: {
+                    type: 'date'
+                },
+                text: {
+                    type: 'text'
+                }
+            }
+        },
+    }
+}
 class Task {
     constructor(conf) {
         this.conf = conf;
@@ -36,7 +104,6 @@ class Task {
     }
 
     async init() {
-        //based on indexName
         // Discard all existing subscriptions that could relate to this task (or some other from this instance of feeder)
         const expectedDesc = this._getSubscriptionDesc();
         try {
@@ -71,38 +138,28 @@ class Task {
         // Create index in Elasticsearch if it does not exist yet
         let allSps = await this.fetchSps();
         for (let sp of allSps) {
-            //console.log(sp);
             let indexName = this.getIndex(sp);
-            //console.log(indexName);
-            //let indexExists = true; this.indexExists.indexName === true? true:
             if (this.indexExists.has(indexName) === false) {
+                console.log('Creating/updating index for', indexName);
                 let indexExists = await this.es.indices.exists({ index: indexName });
-            
+                this.indexExists.set(indexName, true);
                 if (!indexExists) {
-                    this.indexExists.indexName = true;
+                    console.log('Creating index for', indexName);
+
                     await this.es.indices.create({
                         index: indexName,
-                        body: {
-                            mappings: {
-                                sensingNumber: {
-                                    properties: {
-                                        name: {
-                                            type: 'keyword'
-                                        },
-                                        attribute: {
-                                            type: 'keyword'
-                                        },
-                                        time: {
-                                            type: 'date'
-                                        },
-                                        value: {
-                                            type: 'double'
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        body: body
                     })
+                } else {
+                    console.log('Updating mappings of index for', indexName);
+                    for(let mapType in body.mappings) {
+                        //console.log(mapType, body.mappings[mapType]);
+                        await this.es.indices.putMapping({
+                            index: indexName,
+                            body: body.mappings[mapType],
+                            type: mapType
+                        })
+                    }
                 }
             }
         }
@@ -201,36 +258,39 @@ class Task {
     async feedToElasticsearch(sensors) {
         const docTime = new Date();
         const bulkBody = [];
-        
+
         await this.createIndexes();
         for (const sensor of sensors) {
             let index = this.getIndex(sensor.servicePath);
-            
+            let attrType;
+            let attrVal;
+
             for (const attribute of sensor.attributes) {
-                if (attribute.type === 'Number' || 
-                attribute.type === 'geo:json' ||
-                attribute.type === 'string' ||
-                attribute.type === 'Text' ||
-                attribute.type === 'DateTime') {
-                    log.info(`Feeding sensor value: ${this.orionConfig.service} ${sensor.name}.${attribute.name} @ ${docTime} = ${attribute.value}`);
-
-                    bulkBody.push({
-                        index: {
-                            _index: index,
-                            _type: 'sensingNumber'
-                        }
-                    });
-
-                    bulkBody.push({
-                        name: sensor.name,
-                        attribute: attribute.name,
-                        time: docTime.getTime(),
-                        value: attribute.value
-                    });
-
-                } else {
-                    log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
+                switch (attribute.type) {
+                    case 'Number': attrType = 'sensingNumber'; attrVal = attribute.value; break;
+                    case 'geo:json': attrType = 'sensingGeo'; attrVal = attribute.value.coordinates; break;
+                    case 'string':
+                    case 'Text': attrType = 'sensingText'; attrVal = attribute.value; break;
+                    case 'DateTime': attrType = 'sensingDate'; attrVal = attribute.value; break;
+                    default:
+                        log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
                 }
+
+                log.info(`Feeding sensor value: ${this.orionConfig.service} ${sensor.name}.${attribute.name} @ ${docTime} =`, JSON.stringify(attrVal));
+
+                bulkBody.push({
+                    index: {
+                        _index: index,
+                        _type: attrType
+                    }
+                });
+
+                bulkBody.push({
+                    name: sensor.name,
+                    attribute: attribute.name,
+                    time: docTime.getTime(),
+                    value: attrVal
+                });
             }
         }
 
@@ -267,10 +327,6 @@ class Task {
         if (this.conf.throttling) {
             sub.throttling = this.conf.throttling;
         }
-
-        /*console.log(sub);
-        console.log("s and sp");
-        console.log(service, this.orionConfig.servicePath);*/
 
         return new Promise(resolve => {
             rp({
@@ -338,19 +394,15 @@ async function feedData(taskCid, data) {
 async function run() {
     const taskConfs = config.get('tasks');
 
-    //log.info(`Run method: taskConfs ${taskConfs}`);
     for (const conf of taskConfs) {
         const task = new Task(conf);
         await task.init();
         tasks[task.cid] = task;
     }
 
-    //log.info(`Run method: tasks ${tasks}`);
-
     let accumulatedDelay = 0;
     for (const taskCid in tasks) {
         const task = tasks[taskCid];
-        //log.info(`Run method: task ${task} taskCid ${taskCid}`);
         setTimeout(async () => {
             await task.doPeriod();
             if (task.conf.period) {
