@@ -19,6 +19,7 @@ const TriggerTypes = {
     Subscription: 'subscription'
 };
 
+// do this based on task's index type
 const body = {
     mappings: {
         sensingNumber: {
@@ -87,6 +88,7 @@ const body = {
         },
     }
 }
+
 class Task {
     constructor(conf) {
         this.conf = conf;
@@ -152,7 +154,8 @@ class Task {
                     })
                 } else {
                     console.log('Updating mappings of index for', indexName);
-                    for(let mapType in body.mappings) {
+                    // do this based on task's index type
+                    for (let mapType in body.mappings) {
                         //console.log(mapType, body.mappings[mapType]);
                         await this.es.indices.putMapping({
                             index: indexName,
@@ -229,13 +232,13 @@ class Task {
                             });
                         }
                     }
-                    
+
                     let sp;
-                    if(!!entry.servicePath)
+                    if (!!entry.servicePath)
                         sp = entry.servicePath.value;
 
                     let dateModified = 0;
-                    if(!!entry.dateModified)
+                    if (!!entry.dateModified)
                         dateModified = entry.dateModified.value;
 
                     results.push({
@@ -269,6 +272,7 @@ class Task {
         const bulkBody = [];
 
         await this.createIndexes();
+        // do this based on task's index type
         for (const sensor of sensors) {
             let index = this.getIndex(sensor.servicePath);
             let attrType;
@@ -284,7 +288,7 @@ class Task {
                     default:
                         log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
                 }
-                
+
                 //${docTime}
                 log.info(`Feeding sensor value: ${this.orionConfig.service} ${sensor.name}.${attribute.name} @ ${sensor.dateModified} =`, JSON.stringify(attrVal));
                 //dateModified: sensor.dateModified docTime.getTime()
@@ -358,7 +362,6 @@ class Task {
                         this.subscriptionId = msg.headers.location.replace(/.*v2\/subscriptions\/(.*)/, '$1');
                     }
                 }
-
                 resolve();
             });
         });
@@ -404,6 +407,20 @@ async function feedData(taskCid, data) {
 async function run() {
     const taskConfs = config.get('tasks');
 
+    /* http://handlebarsjs.com/
+     const hbs = require('handlebars');
+    
+    const tmpl = hbs.compile(config.elasticsearch.index);
+    
+    const vars = {
+      servicePath: ....
+      day: .... // 01 - 31
+      month: ... // 01 - 12
+      year: ... // YYYY
+    };
+    
+    tmpl(vars);
+    */
     for (const conf of taskConfs) {
         const task = new Task(conf);
         await task.init();
