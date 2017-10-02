@@ -64,37 +64,17 @@ tasks:
 
   orion:
     service: waziup
-    servicePath: /FL
-
-/FL/A
-/FL/B
-
-waziup-fl-a
-waziup-fl-b
+    servicePath: /#
 
 #  Specifies task-level Elasticsearch settings
 #  Entries from the global "elasticsearch" are used here as defaults. They can be overridden here. The same way,
 #  the fields here can be moved to global "elasticsearch".
-
-  elasticsearch:
-    index: {service}-{servicePath}{year}{month}{day}
-
-  orion:
-    service: waziup
-    servicePath: /FL
-
-/FL/A
-/FL/B
-
-waziup-fl-a
-waziup-fl-b
-
 #  Specifies task-level Elasticsearch settings
 #  Entries from the global "elasticsearch" are used here as defaults. They can be overridden here. The same way,
 #  the fields here can be moved to global "elasticsearch".
 
-  elasticsearch:
-    index: {servicePath}{year}{month}{day}
+#  elasticsearch:
+#    index: {servicePath}{year}{month}{day}
 
 
 #  Specifies the filter over the sensors discovered.

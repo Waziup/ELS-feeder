@@ -287,6 +287,8 @@ class Task {
                     case 'DateTime': attrType = 'sensingDate'; attrVal = attribute.value; break;
                     default:
                         log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
+                        continue;
+                        //FIXME: might be needed 
                 }
 
                 //${docTime}
