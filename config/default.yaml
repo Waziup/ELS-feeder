@@ -21,7 +21,7 @@ orion:
 
 # Defines (multiple) tasks. Each task defines sensors and target index in ElasticSearch
 tasks:
-- trigger: subscription
+- trigger: time
 
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
@@ -30,7 +30,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-#  period: 300000
+  period: 3000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5

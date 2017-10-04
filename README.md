@@ -138,3 +138,10 @@ dateModified DateTime
 location geo:json
 owner String
 servicePath Text*/
+
+#period: 300000
+
+curl -X GET elasticsearch.waziup.io/watersense-ssf-tests/sensingNumber/_search | jq "."
+curl -X GET elasticsearch.waziup.io/watersense-ssf-tests/_search | jq "." | less
+curl -X GET elasticsearch.waziup.io/watersense-ssf-tests/sensingText/_search | jq "."
+

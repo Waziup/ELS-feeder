@@ -142,26 +142,26 @@ class Task {
         for (let sp of allSps) {
             let indexName = this.getIndex(sp);
             if (this.indexExists.has(indexName) === false) {
-                console.log('Creating/updating index for', indexName);
+                log.info('Creating/updating index for', indexName);
                 let indexExists = await this.es.indices.exists({ index: indexName });
                 this.indexExists.set(indexName, true);
                 if (!indexExists) {
-                    console.log('Creating index for', indexName);
-
+                    log.info('Creating index for ', indexName);
                     await this.es.indices.create({
                         index: indexName,
                         body: body
                     })
                 } else {
-                    console.log('Updating mappings of index for', indexName);
+                    log.info('Updating mappings of index for ', indexName);
                     // do this based on task's index type
                     for (let mapType in body.mappings) {
-                        //console.log(mapType, body.mappings[mapType]);
-                        await this.es.indices.putMapping({
+                        log.info(mapType, body.mappings[mapType]);
+                        const ret = await this.es.indices.putMapping({
                             index: indexName,
                             body: body.mappings[mapType],
                             type: mapType
-                        })
+                        });
+                        log.info('putMapping operation: ', JSON.stringify(ret));
                     }
                 }
             }
@@ -211,25 +211,110 @@ class Task {
         }
     }
 
+    //sensors data are filtered via ...
+    async feedToElasticsearch(sensors) {
+        const docTime = new Date();
+        const bulkBody = [];
+        let attrType;
+        let attrVal;
+        let value, timestamp;
+        let index;
+        await this.createIndexes();
+        // do this based on task's index type
+        for (const sensor of sensors) {
+            index = this.getIndex(sensor.servicePath);
+
+            for (const attribute of sensor.attributes) {
+                switch (attribute.type) {
+                    case 'Number': attrType = 'sensingNumber'; value = 'value'; attrVal = attribute.value; break;
+                    case 'geo:json': attrType = 'sensingGeo'; value = 'geo'; attrVal = attribute.coordinates; break;
+                    case 'string':
+                    case 'Text':
+                        attrType = 'sensingText';
+                        value = 'text';
+                        attrVal = attribute.value;
+                        break;
+                    case 'DateTime': attrType = 'sensingDate'; value = 'date'; attrVal = attribute.value; break;
+                    default:
+                        log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
+                        continue;
+                    //FIXME: might be needed 
+                }
+
+                if (!!attribute.timestamp)
+                    timestamp = attribute.timestamp
+                else
+                    timestamp = sensor.dateModified
+
+                log.info(`Feeding sensor value: ${this.orionConfig.service}/${sensor.name}.${attribute.name} @ ${timestamp} =`, JSON.stringify(attrVal));
+                //${docTime} dateModified: sensor.dateModified docTime.getTime()
+                bulkBody.push({
+                    index: {
+                        _index: index,
+                        _type: attrType
+                    }
+                });
+
+                bulkBody.push({
+                    name: sensor.name,
+                    attribute: attribute.name,
+                    time: timestamp,
+                    [value]: attrVal
+                });
+            }
+        }
+
+        if (bulkBody.length > 0) {
+            await this.es.bulk({ body: bulkBody },
+                function (err, resp) {
+                    if(!!err)
+                        log.info(`Error happened during bulk operation.`, JSON.stringify(err), 
+                            JSON.stringify(resp));
+                    /*else
+                        log.info(`Bulk operation executed successfully.`,
+                            JSON.stringify(resp));*/
+                });
+        }
+    }
+
     async filterSensors(data) {
         try {
             const filter = this.conf.filter || {};
             const idsSet = filter.ids ? new Set(filter.ids) : null;
             const attributesSet = filter.attributes ? new Set(filter.attributes) : null;
-
             const results = [];
+            let attrVal;
 
             for (const entry of data) {
                 if (!idsSet || idsSet.has(entry.id)) {
                     const attributes = [];
 
+                    //build attributes part
                     for (const attrName in entry) {
-                        if (!excludedAttributes.has(attrName) && (!attributesSet || attributesSet.has(attrName))) {
-                            attributes.push({
-                                name: attrName,
-                                type: entry[attrName].type,
-                                value: entry[attrName].value
-                            });
+                        if (!excludedAttributes.has(attrName) &&
+                            (!attributesSet || attributesSet.has(attrName))) {
+
+                            attrVal = entry[attrName].value;
+
+                            if (attrName === 'farmingAction')
+                                attrVal = attrVal.concat(' Quantity: ' +
+                                    entry[attrName].metadata.quantity.value
+                                    + ', Description: ' + entry[attrName].metadata.description.value);
+
+                            if (!!entry[attrName].metadata
+                                && !!entry[attrName].metadata.timestamp)
+                                attributes.push({
+                                    name: attrName,
+                                    type: entry[attrName].type,
+                                    value: attrVal,
+                                    timestamp: entry[attrName].metadata.timestamp.value
+                                });
+                            else
+                                attributes.push({
+                                    name: attrName,
+                                    type: entry[attrName].type,
+                                    value: attrVal
+                                });
                         }
                     }
 
@@ -237,9 +322,13 @@ class Task {
                     if (!!entry.servicePath)
                         sp = entry.servicePath.value;
 
-                    let dateModified = 0;
+                    let dateModified;
                     if (!!entry.dateModified)
                         dateModified = entry.dateModified.value;
+                    else { //if there is no data update time.
+                        dateModified = new Date();
+                        dateModified = dateModified.getTime();
+                    }
 
                     results.push({
                         name: entry.id,
@@ -265,54 +354,6 @@ class Task {
             index = index.concat(spPart);
         }
         return index.toLowerCase();
-    }
-
-    async feedToElasticsearch(sensors) {
-        const docTime = new Date();
-        const bulkBody = [];
-
-        await this.createIndexes();
-        // do this based on task's index type
-        for (const sensor of sensors) {
-            let index = this.getIndex(sensor.servicePath);
-            let attrType;
-            let attrVal;
-
-            for (const attribute of sensor.attributes) {
-                switch (attribute.type) {
-                    case 'Number': attrType = 'sensingNumber'; attrVal = attribute.value; break;
-                    case 'geo:json': attrType = 'sensingGeo'; attrVal = attribute.value.coordinates; break;
-                    case 'string':
-                    case 'Text': attrType = 'sensingText'; attrVal = attribute.value; break;
-                    case 'DateTime': attrType = 'sensingDate'; attrVal = attribute.value; break;
-                    default:
-                        log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
-                        continue;
-                        //FIXME: might be needed 
-                }
-
-                //${docTime}
-                log.info(`Feeding sensor value: ${this.orionConfig.service} ${sensor.name}.${attribute.name} @ ${sensor.dateModified} =`, JSON.stringify(attrVal));
-                //dateModified: sensor.dateModified docTime.getTime()
-                bulkBody.push({
-                    index: {
-                        _index: index,
-                        _type: attrType
-                    }
-                });
-
-                bulkBody.push({
-                    name: sensor.name,
-                    attribute: attribute.name,
-                    time: sensor.dateModified,
-                    value: attrVal
-                });
-            }
-        }
-
-        if (bulkBody.length > 0) {
-            await this.es.bulk({ body: bulkBody });
-        }
     }
 
     _getSubscriptionDesc() {
