@@ -86,6 +86,22 @@ const body = {
                 }
             }
         },
+        sensingObject: {
+            properties: {
+                name: {
+                    type: 'keyword'
+                },
+                attribute: {
+                    type: 'keyword'
+                },
+                time: {
+                    type: 'date'
+                },
+                object: {
+                    type: 'object'
+                }
+            }
+        },
     }
 }
 
@@ -225,26 +241,32 @@ class Task {
             index = this.getIndex(sensor.servicePath);
 
             for (const attribute of sensor.attributes) {
-                switch (attribute.type) {
-                    case 'Number': attrType = 'sensingNumber'; value = 'value'; attrVal = attribute.value; break;
+                switch (attribute.type.toLowerCase()) {
+                    case 'number': attrType = 'sensingNumber'; value = 'value'; attrVal = attribute.value; break;
                     case 'geo:json': attrType = 'sensingGeo'; value = 'geo'; attrVal = attribute.coordinates; break;
-                    case 'string':
-                    case 'Text':
+                    case 'string': attrType = 'sensingKeyword'; value = 'keyword'; attrVal = attribute.value; break;
+                    case 'text':
                         attrType = 'sensingText';
                         value = 'text';
                         attrVal = attribute.value;
                         break;
-                    case 'DateTime': attrType = 'sensingDate'; value = 'date'; attrVal = attribute.value; break;
+                    case 'datetime': attrType = 'sensingDate'; value = 'date'; attrVal = attribute.value; break;
+                    case 'object': attrType = 'sensingObject'; value = 'object'; attrVal = attribute.value; break;
                     default:
                         log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
                         continue;
                     //FIXME: might be needed 
                 }
 
-                if (!!attribute.timestamp)
-                    timestamp = attribute.timestamp
-                else
+                if (!!attribute.timestamp) {
+                    timestamp = attribute.timestamp;
+                    log.info('attribute.timestamp', attribute.timestamp);
+                }
+
+                else {
                     timestamp = sensor.dateModified
+                    log.info('sensor.dateModified', timestamp);
+                }
 
                 log.info(`Feeding sensor value: ${this.orionConfig.service}/${sensor.name}.${attribute.name} @ ${timestamp} =`, JSON.stringify(attrVal));
                 //${docTime} dateModified: sensor.dateModified docTime.getTime()
@@ -261,14 +283,21 @@ class Task {
                     time: timestamp,
                     [value]: attrVal
                 });
+
+                /*console.log(JSON.stringify({
+                    name: sensor.name,
+                    attribute: attribute.name,
+                    time: timestamp,
+                    [value]: attrVal
+                }));*/
             }
         }
 
         if (bulkBody.length > 0) {
             await this.es.bulk({ body: bulkBody },
                 function (err, resp) {
-                    if(!!err)
-                        log.info(`Error happened during bulk operation.`, JSON.stringify(err), 
+                    if (!!err)
+                        log.info(`Error happened during bulk operation.`, JSON.stringify(err),
                             JSON.stringify(resp));
                     /*else
                         log.info(`Bulk operation executed successfully.`,
@@ -296,10 +325,10 @@ class Task {
 
                             attrVal = entry[attrName].value;
 
-                            if (attrName === 'farmingAction')
+                            /*if (attrName === 'farmingAction')
                                 attrVal = attrVal.concat(' Quantity: ' +
                                     entry[attrName].metadata.quantity.value
-                                    + ', Description: ' + entry[attrName].metadata.description.value);
+                                    + ', Description: ' + entry[attrName].metadata.description.value);*/
 
                             if (!!entry[attrName].metadata
                                 && !!entry[attrName].metadata.timestamp)
@@ -326,8 +355,9 @@ class Task {
                     if (!!entry.dateModified)
                         dateModified = entry.dateModified.value;
                     else { //if there is no data update time.
+                        log.info('dateModified does not exist', JSON.stringify(entry.dateModified));
                         dateModified = new Date();
-                        dateModified = dateModified.getTime();
+                        dateModified = dateModified.toISOString();
                     }
 
                     results.push({
