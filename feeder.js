@@ -284,12 +284,6 @@ class Task {
                     [value]: attrVal
                 });
 
-                /*console.log(JSON.stringify({
-                    name: sensor.name,
-                    attribute: attribute.name,
-                    time: timestamp,
-                    [value]: attrVal
-                }));*/
             }
         }
 
@@ -325,11 +319,6 @@ class Task {
 
                             attrVal = entry[attrName].value;
 
-                            /*if (attrName === 'farmingAction')
-                                attrVal = attrVal.concat(' Quantity: ' +
-                                    entry[attrName].metadata.quantity.value
-                                    + ', Description: ' + entry[attrName].metadata.description.value);*/
-
                             if (!!entry[attrName].metadata
                                 && !!entry[attrName].metadata.timestamp)
                                 attributes.push({
@@ -352,7 +341,7 @@ class Task {
                         sp = entry.servicePath.value;
 
                     let dateModified;
-                    if (!!entry.dateModified)
+                    if (entry.hasOwnProperty('dateModified'))
                         dateModified = entry.dateModified.value;
                     else { //if there is no data update time.
                         log.info('dateModified does not exist', JSON.stringify(entry.dateModified));
