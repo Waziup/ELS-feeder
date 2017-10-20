@@ -22,11 +22,22 @@ data:
       orion:
         service: waziup
         servicePath: /#
+      period: 600000
     - trigger: subscription
       orion:
         service: watersense
         servicePath: /#
-      #period: 300000
+      filter:
+        types:   
+          - Farm
+    - trigger: subscription
+      orion:
+        service: watersense
+        servicePath: /#
+      filter:
+        types:   
+          - SensingDevice
+      period: 60000
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment

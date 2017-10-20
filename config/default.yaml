@@ -21,7 +21,7 @@ orion:
 
 # Defines (multiple) tasks. Each task defines sensors and target index in ElasticSearch
 tasks:
-- trigger: time
+- trigger: subscription
 
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
@@ -30,7 +30,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-  period: 3000
+#  period: 3000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5
@@ -42,9 +42,25 @@ tasks:
   orion:
     service: watersense
     servicePath: /#
+  #  Specifies the filter over the sensors discovered.
+  filter:
+    types:   
+      - Farm
+#  If set, only entities listed below will be considered. If missing, no filtering by IDs is done
+#    ids:
+#    - WS_FARM1_Sensor2
+#    - WS_FARM1_Sensor3
+#    - WS_FARM1_Sensor4
+- trigger: time
+  orion:
+    service: watersense
+    servicePath: /#
+  filter:
+    types:   
+      - SensingDevice
+  period: 30000
 
-- trigger: subscription
-
+#- trigger: time
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
 #  If it is "subscription", Feeder listens to notifications and recreates the subscription every period below.
@@ -52,7 +68,6 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-#  period: 30000
   #period: 300000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
@@ -62,9 +77,9 @@ tasks:
 #  Entries from the global "orion" are used here as defaults. They can be overridden here. The same way,
 #  the fields here can be moved to the global "orion".
 
-  orion:
-    service: waziup
-    servicePath: /#
+#  orion:
+#   service: waziup
+#    servicePath: /UPPA/#
 
 #  Specifies task-level Elasticsearch settings
 #  Entries from the global "elasticsearch" are used here as defaults. They can be overridden here. The same way,

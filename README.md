@@ -1,3 +1,18 @@
+    /* http://handlebarsjs.com/
+     const hbs = require('handlebars');
+    
+    const tmpl = hbs.compile(config.elasticsearch.index);
+    
+    const vars = {
+      servicePath: ....
+      day: .... // 01 - 31
+      month: ... // 01 - 12
+      year: ... // YYYY
+    };
+    
+    tmpl(vars);
+    */
+    
 curl 'http://broker.waziup.io/v2/entities?attrs=dateModified,dateCreated,servicePath,*' --header 'Fiware-ServicePath:/#, /Calci/#' --header 'Fiware-Service: watersense' -X GET | jq "."
 
 
