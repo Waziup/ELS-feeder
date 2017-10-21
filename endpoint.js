@@ -14,7 +14,7 @@ router.post('/update/:cid', helpers.safeHandler(async (req, res) => {
     log.info('Received data from Orion ')
     log.info('req.params.cid', req.params.cid);
     log.info('Req.body.data', req.body.data);
-    feeder.feedData(req.params.cid, req.body.data);
+    await feeder.feedData(req.params.cid, req.body.data);
     res.end();
 }));
 

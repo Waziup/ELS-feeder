@@ -33,22 +33,6 @@ const body = {
                 }
             }
         },
-        sensingDate: {
-            properties: {
-                name: {
-                    type: 'keyword'
-                },
-                attribute: {
-                    type: 'keyword'
-                },
-                time: {
-                    type: 'date'
-                },
-                date: {
-                    type: 'date'
-                }
-            }
-        },
         sensingText: {
             properties: {
                 name: {
@@ -81,6 +65,22 @@ const body = {
                 }
             }
         },
+        sensingDate: {
+            properties: {
+                name: {
+                    type: 'keyword'
+                },
+                attribute: {
+                    type: 'keyword'
+                },
+                time: {
+                    type: 'date'
+                },
+                date: {
+                    type: 'date'
+                }
+            }
+        }
     }
 }
 

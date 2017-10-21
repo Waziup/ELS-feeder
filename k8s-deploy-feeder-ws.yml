@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: feeder-config
+  name: feeder-config2
   namespace: waziup
 data:
   default.yaml: |
     endpoint:
-      id: tb1
-      url: http://feeder
+      id: tb2
+      url: http://feeder2
     
     elasticsearch:
       host: elasticsearch
@@ -20,53 +20,53 @@ data:
     tasks:
     - trigger: subscription
       orion:
-        service: watersense
-        servicePath: /FARM2/TESTS
-      elasticsearch:
-        index: farm2
-      filter:
-        attributes:
-        - SM1
-        - SM2
+        service: waziup
+        servicePath: /#
+      period: 600000
     - trigger: subscription
       orion:
         service: watersense
-        servicePath: /FARM1/TESTS
-      elasticsearch:
-        index: farm1
+        servicePath: /#
       filter:
-        attributes:
-        - SM1
-        - SM2
+        types:   
+          - Farm
+    - trigger: subscription
+      orion:
+        service: watersense
+        servicePath: /#
+      filter:
+        types:   
+          - SensingDevice
+      period: 60000
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   namespace: waziup
-  name: feeder
+  name: feeder2
 spec:
   replicas: 1
   template:
     metadata:
-      name: feeder
+      name: feeder2
       labels:
-        app: feeder
+        app: feeder2
     spec:
       containers:
-      - name: feeder
-        image: waziup/feeder
+      - name: feeder2
+        image: waziup/feeder2
         env:
         - name: FEEDER_EXTRA_CONFIG_DIR
-          value: /etc/feeder
+          value: /etc/feeder/
         ports:
         - containerPort: 8000
         volumeMounts:
         - mountPath: /etc/feeder
-          name: feeder-config
+          name: feeder-config2
       volumes:
-      - name: feeder-config
+      - name: feeder-config2
         configMap:
-          name: feeder-config
+          name: feeder-config2
           items:
           - key: default.yaml
             path: default.yaml
@@ -78,11 +78,11 @@ kind: Service
 metadata:
   namespace: waziup
   labels:
-    name: feeder
-  name: feeder
+    name: feeder2
+  name: feeder2
 spec:
   ports:
     - port: 80
-      targetPort: 8000
+      targetPort: 9000
   selector:
-    app: feeder
+    app: feeder2

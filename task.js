@@ -45,35 +45,47 @@ module.exports = class Task {
             log.error(err);
         }
     }
-   
+
     // Create an index in Elasticsearch if it does not exist yet
     //This is to support automatic discovery of sensors and service paths
     async createIndexes() {
         //automatic discovery
         let allSps = await this.orion.fetchServicePaths();
-        for (let sp of allSps) {
-            let indexName = this.generateIndex(sp);
+        for (let indexName of allSps) {
+            log.info('indexName:', JSON.stringify(indexName));
+            //let indexName = this.generateIndex(sp);
             if (this.indexExists.has(indexName) === false) {
                 log.info('Creating/updating index for', indexName);
                 let flag = await this.es.indices.exists({ index: indexName });
                 this.indexExists.set(indexName, true);
                 if (!flag) {
                     log.info('Creating an index for ', indexName);
-                    await this.es.indices.create({
-                        index: indexName,
-                        body: body
-                    });
+                    try {
+                        await this.es.indices.create({
+                            index: indexName,
+                            body: body.mappings
+                        });
+                    } catch (err) {
+                        log.error("ERROR in creating index", err);
+                        continue;
+                    }
+
                 } else {
                     log.info('Updating mappings of index for ', indexName);
                     // do this based on task's index type
                     for (let mapType in body.mappings) {
                         log.info(mapType, body.mappings[mapType]);
-                        const ret = await this.es.indices.putMapping({
-                            index: indexName,
-                            body: body.mappings[mapType],
-                            type: mapType
-                        });
-                        log.info('putMapping operation: ', JSON.stringify(ret));
+                        try {
+                            const ret = await this.es.indices.putMapping({
+                                index: indexName,
+                                body: body.mappings[mapType],
+                                type: mapType
+                            });
+                            log.info('putMapping operation: ', JSON.stringify(ret));
+                        } catch (err) {
+                            log.error("ERROR in putMapping", err);
+                            continue;
+                        }
                     }
                 }
             }
@@ -91,7 +103,7 @@ module.exports = class Task {
         // do this based on task's index type
         for (const sensor of sensors) {
             index = this.generateIndex(sensor.servicePath);
-            this.createIndexes();
+            await this.createIndexes();
 
             for (const attribute of sensor.attributes) {
                 switch (attribute.type.toLowerCase()) {
@@ -116,7 +128,7 @@ module.exports = class Task {
                 }
                 else {
                     timestamp = sensor.dateModified
-                    log.info(`${attribute.name} uses sensor.dateModified ${timestamp}`);                    
+                    log.info(`${attribute.name} uses sensor.dateModified ${timestamp}`);
                 }
 
                 log.info(`Feeding sensor value: ${this.orionConfig.service}/${sensor.name}.${attribute.name} @ ${timestamp} =`, JSON.stringify(attrVal));
@@ -134,20 +146,23 @@ module.exports = class Task {
                     time: timestamp,
                     [value]: attrVal
                 });
-
             }
         }
 
         if (bulkBody.length > 0) {
-            await this.es.bulk({ body: bulkBody },
-                function (err, resp) {
-                    if (!!err)
-                        log.info(`Error happened during bulk operation.`, JSON.stringify(err),
-                            JSON.stringify(resp));
-                    /*else
-                        log.info(`Bulk operation executed successfully.`,
-                            JSON.stringify(resp));*/
-                });
+            try {
+                await this.es.bulk({ body: bulkBody },
+                    function (err, resp) {
+                        if (!!err)
+                            log.info(`Error happened during bulk operation.`, JSON.stringify(err),
+                                JSON.stringify(resp));
+                        /*else
+                            log.info(`Bulk operation executed successfully.`,
+                                JSON.stringify(resp));*/
+                    });
+            } catch (err) {
+                log.error("ERROR in bulk operation", err);
+            }
         }
     }
 
@@ -169,8 +184,12 @@ module.exports = class Task {
                     for (const attrName in sensor) {
                         if (!excludedAttributes.has(attrName) &&
                             (!attributesSet || attributesSet.has(attrName))) {
-                            //log.info('attrName: ', attrName);
-                            attrVal = sensor[attrName].value;
+                            
+                            if(!!sensor[attrName].value)
+                                attrVal = sensor[attrName].value;
+                            else
+                                attrVal = 'NA'
+                            log.info('attrName value: ', attrName, attrVal);
 
                             if (!!sensor[attrName].metadata
                                 && !!sensor[attrName].metadata.timestamp)
@@ -192,6 +211,11 @@ module.exports = class Task {
                     let sp;
                     if (!!sensor.servicePath)
                         sp = sensor.servicePath.value;
+                    else {
+                        log.info(`sensor ${sensor.id} does not have a sp`);
+                        sp = "/"
+                    }
+
                     let dateModified;
                     if (sensor.hasOwnProperty('dateModified'))
                         dateModified = sensor.dateModified.value;
@@ -200,7 +224,7 @@ module.exports = class Task {
                         dateModified = dateModified.toISOString();
                         log.info(`${sensor.id} dateModified does not exist: nowDate `, dateModified, " sensor.dateModified:", JSON.stringify(sensor.dateModified));
                     }
-                    if(sensor.hasOwnProperty('name'))
+                    if (sensor.hasOwnProperty('name'))
                         log.info(`sensor id ${sensor.id} has sensor name ${sensor.name.value}`)
 
                     //IMPORTANT id and name
@@ -233,7 +257,7 @@ module.exports = class Task {
     }
 
     async doPeriod() {
-        log.info(this.conf);        
+        //log.info(this.conf);        
         await this.orion.unsubscribe();
         const data = await this.orion.fetchSensors();
         const sensors = await this.filterSensors(data);

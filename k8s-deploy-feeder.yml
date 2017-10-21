@@ -8,7 +8,6 @@ data:
     endpoint:
       id: tb2
       url: http://feeder2
-    
     elasticsearch:
       host: elasticsearch
       port: 9200
@@ -16,13 +15,7 @@ data:
     orion:
       # MUST NOT end with slash
       uri: http://orion:1026
-    
     tasks:
-    - trigger: subscription
-      orion:
-        service: waziup
-        servicePath: /#
-      period: 600000
     - trigger: subscription
       orion:
         service: watersense
@@ -30,14 +23,19 @@ data:
       filter:
         types:   
           - Farm
-    - trigger: subscription
+    - trigger: time
       orion:
         service: watersense
         servicePath: /#
       filter:
         types:   
           - SensingDevice
-      period: 60000
+      period: 600000
+    - trigger: subscription
+      orion:
+        service: waziup
+        servicePath: /#
+      period: 6000000
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment

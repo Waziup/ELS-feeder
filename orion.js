@@ -33,10 +33,19 @@ module.exports = class Orion {
         return resp;
     }
 
+    generateIndex(servicePath) {
+        let index = this.orionConfig.service;
+        if (servicePath !== '/') {
+            const spPart = servicePath.replace(/\//g, "-");
+            index = index.concat(spPart);
+        }
+        return index.toLowerCase();
+    }
+
     async fetchServicePaths() {
         try {
             const resp = await rp({
-                uri: `${this.orionConfig.uri}/v2/entities?attrs=servicePath`,
+                uri: `${this.orionConfig.uri}/v2/entities/?limit=1000&attrs=servicePath`,
                 headers: {
                     'Fiware-Service': this.orionConfig.service,
                     'Fiware-ServicePath': this.orionConfig.servicePath
@@ -44,11 +53,16 @@ module.exports = class Orion {
                 json: true
             });
 
-            const spSet = new Set();
+            //log.info('resp', JSON.stringify(resp));
+            let spSet = new Set();
 
             for (const entry of resp) {
-                spSet.add(entry.servicePath.value);
+                let sp = this.generateIndex(entry.servicePath.value)
+                //log.info('sp', JSON.stringify(sp), sp);
+                spSet.add(sp);
             }
+            
+            //log.info('spSet', spSet);
 
             return spSet;
         } catch (err) {
@@ -60,7 +74,7 @@ module.exports = class Orion {
     async fetchSensors() {
         try {
             const resp = await rp({
-                uri: `${this.orionConfig.uri}/v2/entities?attrs=dateModified,servicePath,*`,
+                uri: `${this.orionConfig.uri}/v2/entities?limit=1000&attrs=dateModified,servicePath,*`,
                 headers: {
                     'Fiware-Service': this.orionConfig.service,
                     'Fiware-ServicePath': this.orionConfig.servicePath

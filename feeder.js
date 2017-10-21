@@ -8,16 +8,12 @@ const delay = 500; // time between requests at start (in ms)
 const tasks = {};
 
 async function feedData(taskCid, data) {
-    log.info('feedData ')
-    //log.info(taskCid, data);
     const task = tasks[taskCid];
     const sensors = await task.filterSensors(data);
     await task.feedToElasticsearch(sensors);
 }
 
-async function run() {
-    log.info('feeder:run ');
-    
+async function run() {    
     const taskConfs = config.get('tasks');
 
     for (const conf of taskConfs) {
