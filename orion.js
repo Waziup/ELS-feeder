@@ -61,7 +61,7 @@ module.exports = class Orion {
                 //log.info('sp', JSON.stringify(sp), sp);
                 spSet.add(sp);
             }
-            
+
             //log.info('spSet', spSet);
 
             return spSet;
@@ -89,7 +89,57 @@ module.exports = class Orion {
         }
     }
 
-    subscribe(sensors, description, cid, endpointUrl) {
+    subscribe(description, cid, endpointUrl) {
+        const entities = [
+            {
+                "idPattern": ".*",
+            }
+        ];
+
+        log.info(`Subscribing to entities: ${this.orionConfig.service} ${this.orionConfig.servicePath} ${entities}`);
+
+        const sub = {
+            description: description,
+            subject: {
+                entities
+            },
+            notification: {
+                http: {
+                    url: `${endpointUrl}/api/update/${cid}`
+                }
+            }
+        };
+
+        if (this.orionConfig.throttling) {
+            sub.throttling = this.orionConfig.throttling;
+        }
+
+        return new Promise(resolve => {
+            rp({
+                method: 'POST',
+                uri: `${this.orionConfig.uri}/v2/subscriptions`,
+                headers: {
+                    'Fiware-Service': this.orionConfig.service,
+                    'Fiware-ServicePath': this.orionConfig.servicePath
+                },
+                body: sub,
+                json: true
+            }, (err, msg, body) => {
+                if (err) {
+                    log.error(err);
+                } else {
+                    if (!msg.headers.location) {
+                        log.error('Subscription failed.')
+                    } else {
+                        this.subscriptionId = msg.headers.location.replace(/.*v2\/subscriptions\/(.*)/, '$1');
+                    }
+                }
+                resolve();
+            });
+        });
+    }
+
+    subscribe0(sensors, description, cid, endpointUrl) {
         const entities = sensors.map(sensor => {
             return {
                 id: sensor.name

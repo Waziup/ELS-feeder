@@ -7,9 +7,9 @@ var Task = require('./task.js');
 const delay = 500; // time between requests at start (in ms)
 const tasks = {};
 
-async function feedData(taskCid, data) {
+async function feedData(taskCid, data, servicePaths) {
     const task = tasks[taskCid];
-    const sensors = await task.filterSensors(data);
+    const sensors = await task.filterSensors(data, servicePaths);
     await task.feedToElasticsearch(sensors);
 }
 

@@ -52,7 +52,7 @@ module.exports = class Task {
         //automatic discovery
         let allSps = await this.orion.fetchServicePaths();
         for (let indexName of allSps) {
-            log.info('indexName:', JSON.stringify(indexName));
+            //log.info('indexName:', JSON.stringify(indexName));
             //let indexName = this.generateIndex(sp);
             if (this.indexExists.has(indexName) === false) {
                 log.info('Creating/updating index for', indexName);
@@ -108,13 +108,9 @@ module.exports = class Task {
             for (const attribute of sensor.attributes) {
                 switch (attribute.type.toLowerCase()) {
                     case 'number': attrType = 'sensingNumber'; value = 'value'; attrVal = attribute.value; break;
-                    case 'geo:json': attrType = 'sensingGeo'; value = 'geo'; attrVal = attribute.coordinates; break;
+                    case 'geo:point':case 'geo:json': attrType = 'sensingGeo'; value = 'geo'; attrVal = attribute.coordinates; break;
                     case 'string': attrType = 'sensingKeyword'; value = 'keyword'; attrVal = attribute.value; break;
-                    case 'text':
-                        attrType = 'sensingText';
-                        value = 'text';
-                        attrVal = attribute.value;
-                        break;
+                    case 'text': attrType = 'sensingText'; value = 'text'; attrVal = attribute.value; break;
                     case 'datetime': attrType = 'sensingDate'; value = 'date'; attrVal = attribute.value; break;
                     case 'object': attrType = 'sensingObject'; value = 'object'; attrVal = attribute.value; break;
                     default:
@@ -122,7 +118,7 @@ module.exports = class Task {
                         continue;
                 }
 
-                if (!!attribute.timestamp) {
+                if (attribute.hasOwnProperty('timestamp')) {
                     timestamp = attribute.timestamp;
                     log.info(`${attribute.name} has a timestamp ${attribute.timestamp}`);
                 }
@@ -166,7 +162,7 @@ module.exports = class Task {
         }
     }
 
-    async filterSensors(sensors) {
+    async filterSensors(sensors, servicePaths) {
         try {
             const filter = this.conf.filter || {};
             const idsSet = filter.ids ? new Set(filter.ids) : null;
@@ -174,25 +170,25 @@ module.exports = class Task {
             const attributesSet = filter.attributes ? new Set(filter.attributes) : null;
             const results = [];
             let attrVal;
-
+            let spIndex = -1;
             for (const sensor of sensors) {
+                spIndex++;
                 if ((!idsSet || idsSet.has(sensor.id))
                     && (!typesSet || typesSet.has(sensor.type))) {
                     const attributes = [];
-                    //log.info('sensor id: ', sensor.id, sensor.type);
                     //build attributes part
                     for (const attrName in sensor) {
                         if (!excludedAttributes.has(attrName) &&
                             (!attributesSet || attributesSet.has(attrName))) {
                             
-                            if(!!sensor[attrName].value)
+                            if(sensor[attrName].hasOwnProperty('value'))
                                 attrVal = sensor[attrName].value;
                             else
                                 attrVal = 'NA'
                             log.info('attrName value: ', attrName, attrVal);
 
-                            if (!!sensor[attrName].metadata
-                                && !!sensor[attrName].metadata.timestamp)
+                            if (sensor[attrName].hasOwnProperty('metadata')
+                                && sensor[attrName].metadata.hasOwnProperty('timestamp'))
                                 attributes.push({
                                     name: attrName,
                                     type: sensor[attrName].type,
@@ -208,13 +204,7 @@ module.exports = class Task {
                         }
                     }
 
-                    let sp;
-                    if (!!sensor.servicePath)
-                        sp = sensor.servicePath.value;
-                    else {
-                        log.info(`sensor ${sensor.id} does not have a sp`);
-                        sp = "/"
-                    }
+                    /**/
 
                     let dateModified;
                     if (sensor.hasOwnProperty('dateModified'))
@@ -230,7 +220,7 @@ module.exports = class Task {
                     //IMPORTANT id and name
                     results.push({
                         name: sensor.id,
-                        servicePath: sp,
+                        servicePath: servicePaths[spIndex],
                         dateModified: dateModified,
                         attributes
                     });
@@ -257,14 +247,22 @@ module.exports = class Task {
     }
 
     async doPeriod() {
-        //log.info(this.conf);        
         await this.orion.unsubscribe();
         const data = await this.orion.fetchSensors();
-        const sensors = await this.filterSensors(data);
+        const servicePaths = data.map(entity => entity.servicePath.value)
+        log.info(servicePaths);
+        const sensors = await this.filterSensors(data, servicePaths);
         if (this.conf.trigger === TriggerTypes.Subscription) {
-            await this.orion.subscribe(sensors, this._getSubscriptionDesc(), this.cid, config.get('endpoint.url'));
+            await this.orion.subscribe(this._getSubscriptionDesc(), this.cid, config.get('endpoint.url'));
         } else {
             await this.feedToElasticsearch(sensors);
         }
+        /*let sp;
+        if (sensor.hasOwnProperty('servicePath'))
+            sp = sensor.servicePath.value;
+        else {
+            log.info(`sensor ${sensor.id} does not have a sp`);
+            sp = "/"
+        }*/
     }
 }
