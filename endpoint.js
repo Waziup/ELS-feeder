@@ -13,7 +13,7 @@ const router = express.Router();
 router.post('/update/:cid', helpers.safeHandler(async (req, res) => {
     log.info('Received data from Orion ')
     //log.info('req.headers', req.headers);
-    log.info('req.fiware-servicepath', req.headers['fiware-servicepath']);
+    //log.info('req.fiware-servicepath', req.headers['fiware-servicepath']);
     //log.info('Req.body.data', req.body.data); .params fiware-servicepath
     const servicePaths = req.headers['fiware-servicepath'].split(",");
     log.info(servicePaths);    

@@ -35,7 +35,6 @@ data:
       orion:
         service: waziup
         servicePath: /#
-      period: 6000000
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -52,7 +51,7 @@ spec:
     spec:
       containers:
       - name: feeder
-        image: waziup/feeder:V1_REL-beta
+        image: waziup/feeder:V1_REL-gamma
         env:
         - name: FEEDER_EXTRA_CONFIG_DIR
           value: /etc/feeder/

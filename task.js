@@ -126,7 +126,7 @@ module.exports = class Task {
                     timestamp = sensor.dateModified
                     log.info(`${attribute.name} uses sensor.dateModified ${timestamp}`);
                 }
-
+                log.info(`index ${index}`)
                 log.info(`Feeding sensor value: ${this.orionConfig.service}/${sensor.name}.${attribute.name} @ ${timestamp} =`, JSON.stringify(attrVal));
                 //${docTime} dateModified: sensor.dateModified docTime.getTime()
                 bulkBody.push({
@@ -185,7 +185,7 @@ module.exports = class Task {
                                 attrVal = sensor[attrName].value;
                             else
                                 attrVal = 'NA'
-                            log.info('attrName value: ', attrName, attrVal);
+                            log.info(`attrName value: ${attrName} ${attrVal}`);
 
                             if (sensor[attrName].hasOwnProperty('metadata')
                                 && sensor[attrName].metadata.hasOwnProperty('timestamp'))
@@ -250,19 +250,13 @@ module.exports = class Task {
         await this.orion.unsubscribe();
         const data = await this.orion.fetchSensors();
         const servicePaths = data.map(entity => entity.servicePath.value)
-        log.info(servicePaths);
+        log.info(`doPeriod ${servicePaths}`);
+        log.info('doPeriod', servicePaths);
         const sensors = await this.filterSensors(data, servicePaths);
         if (this.conf.trigger === TriggerTypes.Subscription) {
             await this.orion.subscribe(this._getSubscriptionDesc(), this.cid, config.get('endpoint.url'));
         } else {
             await this.feedToElasticsearch(sensors);
         }
-        /*let sp;
-        if (sensor.hasOwnProperty('servicePath'))
-            sp = sensor.servicePath.value;
-        else {
-            log.info(`sensor ${sensor.id} does not have a sp`);
-            sp = "/"
-        }*/
     }
 }

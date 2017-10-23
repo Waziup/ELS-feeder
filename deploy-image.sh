@@ -1,6 +1,6 @@
 echo "Docker building, testing, and pushing"
-version=V1_REL-beta
-#git tag ${version}
+version=V1_REL-gamma
+git tag ${version}
 docker build -t waziup/feeder .
 sleep 3
 docker tag waziup/feeder waziup/feeder:${version}
