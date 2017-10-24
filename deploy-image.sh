@@ -1,5 +1,5 @@
 echo "Docker building, testing, and pushing"
-version=V1_REL-gamma
+version=V1_REL-teta
 git tag ${version}
 docker build -t waziup/feeder .
 sleep 3

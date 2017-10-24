@@ -30,7 +30,6 @@ module.exports = class Task {
     }
 
     async init() {
-        await this.createIndexes();
         // Discard all existing subscriptions that could relate to this task
         // (or some other from this instance of feeder)
         const expectedDesc = this._getSubscriptionDesc();
@@ -48,7 +47,46 @@ module.exports = class Task {
 
     // Create an index in Elasticsearch if it does not exist yet
     //This is to support automatic discovery of sensors and service paths
-    async createIndexes() {
+    async createIndex(index) {
+        //automatic discovery: has been moved to other parts: subscriptions pattern, and doPeriod
+        log.info('index:', JSON.stringify(index));
+        if (this.indexExists.has(index) === false) {
+            this.indexExists.set(index, true);            
+            log.info('Creating/updating an index for', index);
+            let flag = await this.es.indices.exists({ index: index });
+            if (!flag) {
+                log.info('Creating an index for ', index);
+                try {
+                    await this.es.indices.create({
+                        index: index,
+                        body: body.mappings
+                    });
+                    /*updateAllTypes
+                        Boolean — Whether to update the mapping for all fields with the same name across all types or not */
+                } catch (err) {
+                    log.error("ERROR in creating index", err);
+                }
+            } else {
+                log.info('Updating mappings of index for ', index);
+                // do this based on task's index type
+                for (let mapType in body.mappings) {
+                    log.info(mapType, body.mappings[mapType]);
+                    try {
+                        const ret = await this.es.indices.putMapping({
+                            index: index,
+                            body: body.mappings[mapType],
+                            type: mapType
+                        });
+                        log.info('putMapping operation: ', JSON.stringify(ret));
+                    } catch (err) {
+                        log.error("ERROR in putMapping", err);
+                    }
+                }
+            }
+        }
+    }
+
+    async createIndexes0() {
         //automatic discovery
         let allSps = await this.orion.fetchServicePaths();
         for (let indexName of allSps) {
@@ -103,12 +141,17 @@ module.exports = class Task {
         // do this based on task's index type
         for (const sensor of sensors) {
             index = this.generateIndex(sensor.servicePath);
-            await this.createIndexes();
+            await this.createIndex(index);
 
             for (const attribute of sensor.attributes) {
                 switch (attribute.type.toLowerCase()) {
                     case 'number': attrType = 'sensingNumber'; value = 'value'; attrVal = attribute.value; break;
-                    case 'geo:point':case 'geo:json': attrType = 'sensingGeo'; value = 'geo'; attrVal = attribute.coordinates; break;
+                    case 'geo:point': attrType = 'sensingGeo'; value = 'geo'; attrVal = attribute.value.coordinates; break;
+                    case 'geo:json':
+                        if (attribute.value.hasOwnProperty("type") &&
+                            attribute.value.type === "Point") {
+                            attrType = 'sensingGeo'; value = 'geo'; attrVal = attribute.value.coordinates; break;
+                        }
                     case 'string': attrType = 'sensingKeyword'; value = 'keyword'; attrVal = attribute.value; break;
                     case 'text': attrType = 'sensingText'; value = 'text'; attrVal = attribute.value; break;
                     case 'datetime': attrType = 'sensingDate'; value = 'date'; attrVal = attribute.value; break;
@@ -126,8 +169,8 @@ module.exports = class Task {
                     timestamp = sensor.dateModified
                     log.info(`${attribute.name} uses sensor.dateModified ${timestamp}`);
                 }
-                log.info(`index ${index}`)
-                log.info(`Feeding sensor value: ${this.orionConfig.service}/${sensor.name}.${attribute.name} @ ${timestamp} =`, JSON.stringify(attrVal));
+                //log.info(`index ${index}`)
+                log.info(`Feeding sensor value: ${index}/${sensor.name}.${attribute.name} @ ${timestamp} =`, JSON.stringify(attrVal));
                 //${docTime} dateModified: sensor.dateModified docTime.getTime()
                 bulkBody.push({
                     index: {
@@ -180,8 +223,8 @@ module.exports = class Task {
                     for (const attrName in sensor) {
                         if (!excludedAttributes.has(attrName) &&
                             (!attributesSet || attributesSet.has(attrName))) {
-                            
-                            if(sensor[attrName].hasOwnProperty('value'))
+
+                            if (sensor[attrName].hasOwnProperty('value'))
                                 attrVal = sensor[attrName].value;
                             else
                                 attrVal = 'NA'
@@ -204,12 +247,12 @@ module.exports = class Task {
                         }
                     }
 
-                    /**/
-
+                    //if there is no data update time at sensor level, use the
+                    //receiving data time
                     let dateModified;
                     if (sensor.hasOwnProperty('dateModified'))
                         dateModified = sensor.dateModified.value;
-                    else { //if there is no data update time at sensor level.
+                    else {
                         dateModified = new Date();
                         dateModified = dateModified.toISOString();
                         log.info(`${sensor.id} dateModified does not exist: nowDate `, dateModified, " sensor.dateModified:", JSON.stringify(sensor.dateModified));
@@ -250,7 +293,7 @@ module.exports = class Task {
         await this.orion.unsubscribe();
         const data = await this.orion.fetchSensors();
         const servicePaths = data.map(entity => entity.servicePath.value)
-        log.info(`doPeriod ${servicePaths}`);
+        //log.info(`doPeriod ${servicePaths}`);
         log.info('doPeriod', servicePaths);
         const sensors = await this.filterSensors(data, servicePaths);
         if (this.conf.trigger === TriggerTypes.Subscription) {

@@ -51,7 +51,7 @@ spec:
     spec:
       containers:
       - name: feeder
-        image: waziup/feeder:V1_REL-gamma
+        image: waziup/feeder:V1_REL-teta
         env:
         - name: FEEDER_EXTRA_CONFIG_DIR
           value: /etc/feeder/
