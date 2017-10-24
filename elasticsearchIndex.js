@@ -9,7 +9,10 @@ const body = {
                 attribute: {
                     type: 'keyword'
                 },
-                time: {
+                attribute_timestamp: {
+                    type: 'date'
+                },
+                received_time: {
                     type: 'date'
                 },
                 value: {
@@ -25,7 +28,10 @@ const body = {
                 attribute: {
                     type: 'keyword'
                 },
-                time: {
+                attribute_timestamp: {
+                    type: 'date'
+                },
+                received_time: {
                     type: 'date'
                 },
                 geo: {
@@ -41,7 +47,10 @@ const body = {
                 attribute: {
                     type: 'keyword'
                 },
-                time: {
+                attribute_timestamp: {
+                    type: 'date'
+                },
+                received_time: {
                     type: 'date'
                 },
                 text: {
@@ -57,7 +66,10 @@ const body = {
                 attribute: {
                     type: 'keyword'
                 },
-                time: {
+                attribute_timestamp: {
+                    type: 'date'
+                },
+                received_time: {
                     type: 'date'
                 },
                 object: {
@@ -73,7 +85,10 @@ const body = {
                 attribute: {
                     type: 'keyword'
                 },
-                time: {
+                attribute_timestamp: {
+                    type: 'date'
+                },
+                received_time: {
                     type: 'date'
                 },
                 date: {

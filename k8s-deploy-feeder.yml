@@ -31,10 +31,6 @@ data:
         types:   
           - SensingDevice
       period: 600000
-    - trigger: subscription
-      orion:
-        service: waziup
-        servicePath: /#
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment

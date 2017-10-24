@@ -7,7 +7,7 @@ const log = require('./log');
 const shortid = require('shortid');
 var Orion = require('./orion.js');
 
-const excludedAttributes = new Set(['id', 'type', 'owner']);
+const excludedAttributes = new Set(['id', 'type', 'owner', 'dateModified']);
 const TriggerTypes = {
     Time: 'time',
     Subscription: 'subscription'
@@ -51,7 +51,7 @@ module.exports = class Task {
         //automatic discovery: has been moved to other parts: subscriptions pattern, and doPeriod
         log.info('index:', JSON.stringify(index));
         if (this.indexExists.has(index) === false) {
-            this.indexExists.set(index, true);            
+            this.indexExists.set(index, true);
             log.info('Creating/updating an index for', index);
             let flag = await this.es.indices.exists({ index: index });
             if (!flag) {
@@ -132,11 +132,10 @@ module.exports = class Task {
 
     //sensors data are filtered via ...
     async feedToElasticsearch(sensors) {
-        const docTime = new Date();
         const bulkBody = [];
         let attrType;
         let attrVal;
-        let value, timestamp;
+        let value, attribute_timestamp;
         let index;
         // do this based on task's index type
         for (const sensor of sensors) {
@@ -161,17 +160,24 @@ module.exports = class Task {
                         continue;
                 }
 
-                if (attribute.hasOwnProperty('timestamp')) {
-                    timestamp = attribute.timestamp;
-                    log.info(`${attribute.name} has a timestamp ${attribute.timestamp}`);
+                let received_time = new Date();
+                received_time = received_time.toISOString();
+
+                let doc = {
+                    name: sensor.name,
+                    attribute: attribute.name,
+                    received_time: received_time,
+                    [value]: attrVal
                 }
-                else {
-                    timestamp = sensor.dateModified
-                    log.info(`${attribute.name} uses sensor.dateModified ${timestamp}`);
-                }
-                //log.info(`index ${index}`)
-                log.info(`Feeding sensor value: ${index}/${sensor.name}.${attribute.name} @ ${timestamp} =`, JSON.stringify(attrVal));
-                //${docTime} dateModified: sensor.dateModified docTime.getTime()
+
+                if (attribute.hasOwnProperty('attribute_timestamp')) {
+                    attribute_timestamp = attribute.attribute_timestamp;
+                    doc['attribute_timestamp'] = attribute_timestamp;
+                    //log.info(`${attribute.name} has a timestamp ${attribute.timestamp}`);
+                    log.info(`Feeding sensor value: ${index}/${sensor.name}.${attribute.name} @ RT ${received_time} AT ${attribute_timestamp} =`, JSON.stringify(attrVal));
+                } else
+                    log.info(`Feeding sensor value: ${index}/${sensor.name}.${attribute.name} @ RT ${received_time} =`, JSON.stringify(attrVal));
+
                 bulkBody.push({
                     index: {
                         _index: index,
@@ -179,12 +185,7 @@ module.exports = class Task {
                     }
                 });
 
-                bulkBody.push({
-                    name: sensor.name,
-                    attribute: attribute.name,
-                    time: timestamp,
-                    [value]: attrVal
-                });
+                bulkBody.push(doc);
             }
         }
 
@@ -228,7 +229,7 @@ module.exports = class Task {
                                 attrVal = sensor[attrName].value;
                             else
                                 attrVal = 'NA'
-                            log.info(`attrName value: ${attrName} ${attrVal}`);
+                            //log.info(`attrName value: ${attrName} ${attrVal}`);
 
                             if (sensor[attrName].hasOwnProperty('metadata')
                                 && sensor[attrName].metadata.hasOwnProperty('timestamp'))
@@ -236,7 +237,7 @@ module.exports = class Task {
                                     name: attrName,
                                     type: sensor[attrName].type,
                                     value: attrVal,
-                                    timestamp: sensor[attrName].metadata.timestamp.value
+                                    attribute_timestamp: sensor[attrName].metadata.timestamp.value
                                 });
                             else
                                 attributes.push({
@@ -249,22 +250,21 @@ module.exports = class Task {
 
                     //if there is no data update time at sensor level, use the
                     //receiving data time
-                    let dateModified;
+                    /*let dateModified;
                     if (sensor.hasOwnProperty('dateModified'))
                         dateModified = sensor.dateModified.value;
                     else {
                         dateModified = new Date();
                         dateModified = dateModified.toISOString();
                         log.info(`${sensor.id} dateModified does not exist: nowDate `, dateModified, " sensor.dateModified:", JSON.stringify(sensor.dateModified));
-                    }
-                    if (sensor.hasOwnProperty('name'))
-                        log.info(`sensor id ${sensor.id} has sensor name ${sensor.name.value}`)
+                    }*/
+                    /*if (sensor.hasOwnProperty('name'))
+                        log.info(`sensor id ${sensor.id} has sensor name ${sensor.name.value}`)*/
 
                     //IMPORTANT id and name
                     results.push({
                         name: sensor.id,
                         servicePath: servicePaths[spIndex],
-                        dateModified: dateModified,
                         attributes
                     });
                 }

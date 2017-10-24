@@ -38,7 +38,7 @@ spec:
     spec:
       containers:
       - name: feeder2
-        image: waziup/feeder2
+        image: waziup/feeder2:waziup
         env:
         - name: FEEDER_EXTRA_CONFIG_DIR
           value: /etc/feeder/
