@@ -32,6 +32,7 @@ module.exports = class Task {
     async init() {
         // Discard all existing subscriptions that could relate to this task
         // (or some other from this instance of feeder)
+        await this.createIndex(this.orionConfig.service);        
         const expectedDesc = this._getSubscriptionDesc();
         try {
             const resp = await this.orion.getSubscriptions();
@@ -45,7 +46,7 @@ module.exports = class Task {
         }
     }
 
-    // Create an index in Elasticsearch if it does not exist yet
+    //Create an index in Elasticsearch if it does not exist yet
     //This is to support automatic discovery of sensors and service paths
     async createIndex(index) {
         //automatic discovery: has been moved to other parts: subscriptions pattern, and doPeriod
@@ -133,10 +134,12 @@ module.exports = class Task {
     //sensors data are filtered via ...
     async feedToElasticsearch(sensors) {
         const bulkBody = [];
+        const bulkBodyGlobal = [];
         let attrType;
         let attrVal;
         let value, attribute_timestamp;
         let index;
+
         // do this based on task's index type
         for (const sensor of sensors) {
             index = this.generateIndex(sensor.servicePath);
@@ -156,7 +159,7 @@ module.exports = class Task {
                     case 'datetime': attrType = 'sensingDate'; value = 'date'; attrVal = attribute.value; break;
                     case 'object': attrType = 'sensingObject'; value = 'object'; attrVal = attribute.value; break;
                     default:
-                        log.error(`Unsupported attribute type: ${attribute.type} in ${this.orionConfig.service} ${sensor.name}.${attribute.name}`);
+                        log.error(`Unsupported attribute type: ${attribute.type} in ${index}/${sensor.name}.${attribute.name}`);
                         continue;
                 }
 
@@ -166,7 +169,7 @@ module.exports = class Task {
                 let doc = {
                     name: sensor.name,
                     attribute: attribute.name,
-                    received_time: received_time,
+                    time: received_time,
                     [value]: attrVal
                 }
 
@@ -184,8 +187,16 @@ module.exports = class Task {
                         _type: attrType
                     }
                 });
-
                 bulkBody.push(doc);
+
+                doc['servicePath'] = sensor.servicePath;
+                bulkBodyGlobal.push({
+                    index: {
+                        _index: this.orionConfig.service,
+                        _type: attrType
+                    }
+                });
+                bulkBodyGlobal.push(doc);
             }
         }
 
@@ -199,6 +210,13 @@ module.exports = class Task {
                         /*else
                             log.info(`Bulk operation executed successfully.`,
                                 JSON.stringify(resp));*/
+                    });
+
+                await this.es.bulk({ body: bulkBodyGlobal },
+                    function (err, resp) {
+                        if (!!err)
+                            log.info(`Error happened during bulk operation.`, JSON.stringify(err),
+                                JSON.stringify(resp));
                     });
             } catch (err) {
                 log.error("ERROR in bulk operation", err);
@@ -281,7 +299,9 @@ module.exports = class Task {
         if (servicePath !== '/') {
             const spPart = servicePath.replace(/\//g, "-");
             index = index.concat(spPart);
-        }
+        } else
+            index = index.concat('-root');
+
         return index.toLowerCase();
     }
 

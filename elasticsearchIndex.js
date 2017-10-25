@@ -12,11 +12,14 @@ const body = {
                 attribute_timestamp: {
                     type: 'date'
                 },
-                received_time: {
+                time: {
                     type: 'date'
                 },
                 value: {
                     type: 'double'
+                }, 
+                servicePath: {
+                    type: 'keyword'
                 }
             }
         },
@@ -31,11 +34,14 @@ const body = {
                 attribute_timestamp: {
                     type: 'date'
                 },
-                received_time: {
+                time: {
                     type: 'date'
                 },
                 geo: {
                     type: 'geo_point'
+                }, 
+                servicePath: {
+                    type: 'keyword'
                 }
             }
         },
@@ -50,11 +56,14 @@ const body = {
                 attribute_timestamp: {
                     type: 'date'
                 },
-                received_time: {
+                time: {
                     type: 'date'
                 },
                 text: {
                     type: 'text'
+                }, 
+                servicePath: {
+                    type: 'keyword'
                 }
             }
         },
@@ -69,11 +78,14 @@ const body = {
                 attribute_timestamp: {
                     type: 'date'
                 },
-                received_time: {
+                time: {
                     type: 'date'
                 },
                 object: {
                     type: 'object'
+                }, 
+                servicePath: {
+                    type: 'keyword'
                 }
             }
         },
@@ -88,11 +100,14 @@ const body = {
                 attribute_timestamp: {
                     type: 'date'
                 },
-                received_time: {
+                time: {
                     type: 'date'
                 },
                 date: {
                     type: 'date'
+                }, 
+                servicePath: {
+                    type: 'keyword'
                 }
             }
         }

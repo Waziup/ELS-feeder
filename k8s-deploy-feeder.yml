@@ -18,6 +18,10 @@ data:
     tasks:
     - trigger: subscription
       orion:
+        service: waziup
+        servicePath: /#
+    - trigger: subscription
+      orion:
         service: watersense
         servicePath: /#
       filter:
@@ -47,7 +51,7 @@ spec:
     spec:
       containers:
       - name: feeder
-        image: waziup/feeder:V1_REL-teta
+        image: waziup/feeder:V2_REL
         env:
         - name: FEEDER_EXTRA_CONFIG_DIR
           value: /etc/feeder/
