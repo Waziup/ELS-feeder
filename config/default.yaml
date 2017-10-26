@@ -26,7 +26,7 @@ tasks:
 #    - WS_FARM1_Sensor2
 #    - WS_FARM1_Sensor3
 #    - WS_FARM1_Sensor4
-- trigger: time
+- trigger: subscription
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
 #  If it is "subscription", Feeder listens to notifications and recreates the subscription every period below.
@@ -59,16 +59,36 @@ tasks:
 
 
 #  Specifies the filter over the sensors discovered.
-#  filter:
-
+  filter:
 #  If set, only entities listed below will be considered. If missing, no filtering by IDs is done
-#    ids:
-#    - WS_FARM1_Sensor2
-#    - WS_FARM1_Sensor3
-#    - WS_FARM1_Sensor4
-
+    ids:
+    - WS_FARM1_Sensor2
+    - WS_FARM1_Sensor3
+    - WS_FARM1_Sensor4
+    types:
+      - Farm
+      - type2
+      - type3
+- trigger: subscription
+  orion:
+    service: waziup
+    servicePath: /#
+- trigger: subscription
+  orion:
+      service: watersense
+      servicePath: /#
+  filter:
+      types:
+        - Farm
+- trigger: subscription
+  orion:
+        service: watersense
+        servicePath: /#
+  filter:
+        types:   
+          - SensingDevice
+  period: 600000
 #  If set, only attributes listed below will be considered. If missing, no filtering by attributes is done.
 #    attributes:
 #    - SM1
 #    - SM2
-

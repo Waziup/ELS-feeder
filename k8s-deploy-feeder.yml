@@ -27,14 +27,13 @@ data:
       filter:
         types:
           - Farm
-    - trigger: time
+    - trigger: subscription
       orion:
         service: watersense
         servicePath: /#
       filter:
         types:   
           - SensingDevice
-      period: 600000
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -51,7 +50,7 @@ spec:
     spec:
       containers:
       - name: feeder
-        image: waziup/feeder:V2_REL
+        image: waziup/feeder:V3_REL_orionFilter
         env:
         - name: FEEDER_EXTRA_CONFIG_DIR
           value: /etc/feeder/

@@ -89,14 +89,46 @@ module.exports = class Orion {
         }
     }
 
-    subscribe(description, cid, endpointUrl) {
-        const entities = [
-            {
-                "idPattern": ".*",
+    subscribe(description, cid, endpointUrl, filter) {
+        const entities = [];
+        /*id or idPattern: Id or pattern of the affected entities. 
+        Both cannot be used at the same time, but at least one of them must 
+        be present.type or typePattern: Type or type pattern of the affected 
+        entities. Both cannot be used at the same time. If omitted, it means 
+        "any entity type".
+        */
+        
+        //type pattern
+        if (filter.types) {
+            const typesSet = new Set(filter.types);
+            let typPattern = "";
+            let or = ''
+            for (const typ of typesSet) {
+                typPattern = typPattern.concat(or, typ);
+                or = '|'
             }
-        ];
+            entities.push({
+                "typePattern": typPattern,
+                "idPattern": ".*"
+            });
+        }
 
-        log.info(`Subscribing to entities: ${this.orionConfig.service} ${this.orionConfig.servicePath} ${entities}`);
+        //id filter
+        if (filter.ids) {
+            const idsSet = new Set(filter.ids);
+            //const ids = []
+            for(const id of idsSet)
+                entities.push({id: id});
+            //entities.push(ids);
+        } else if (filter.hasOwnProperty('types') === false) { 
+            //otherwise, apply idPattern for all entities
+            entities.push({
+                "idPattern": ".*"
+            });
+        }
+
+        log.info(`Subscribing to entities: ${this.orionConfig.service} 
+            ${this.orionConfig.servicePath} `, JSON.stringify(entities));
 
         const sub = {
             description: description,

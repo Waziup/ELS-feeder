@@ -32,9 +32,9 @@ module.exports = class Task {
     async init() {
         // Discard all existing subscriptions that could relate to this task
         // (or some other from this instance of feeder)
-        await this.createIndex(this.orionConfig.service);        
-        const expectedDesc = this._getSubscriptionDesc();
         try {
+            await this.createIndex(this.orionConfig.service);
+            const expectedDesc = this._getSubscriptionDesc();
             const resp = await this.orion.getSubscriptions();
             for (const entry of resp) {
                 if (entry.description === expectedDesc) {
@@ -54,7 +54,13 @@ module.exports = class Task {
         if (this.indexExists.has(index) === false) {
             this.indexExists.set(index, true);
             log.info('Creating/updating an index for', index);
-            let flag = await this.es.indices.exists({ index: index });
+            let flag = false;
+            try {
+                flag = await this.es.indices.exists({ index: index });
+            } catch (err) {
+                log.error("ERROR in checking index", err);
+            }
+
             if (!flag) {
                 log.info('Creating an index for ', index);
                 try {
@@ -143,7 +149,11 @@ module.exports = class Task {
         // do this based on task's index type
         for (const sensor of sensors) {
             index = this.generateIndex(sensor.servicePath);
-            await this.createIndex(index);
+            try {
+                await this.createIndex(index);
+            } catch (err) {
+                log.error(err);
+            }
 
             for (const attribute of sensor.attributes) {
                 switch (attribute.type.toLowerCase()) {
@@ -317,7 +327,8 @@ module.exports = class Task {
         log.info('doPeriod', servicePaths);
         const sensors = await this.filterSensors(data, servicePaths);
         if (this.conf.trigger === TriggerTypes.Subscription) {
-            await this.orion.subscribe(this._getSubscriptionDesc(), this.cid, config.get('endpoint.url'));
+            const filter = this.conf.filter || {};
+            await this.orion.subscribe(this._getSubscriptionDesc(), this.cid, config.get('endpoint.url'), filter);
         } else {
             await this.feedToElasticsearch(sensors);
         }
