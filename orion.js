@@ -98,7 +98,7 @@ module.exports = class Orion {
         "any entity type".
         */
         
-        //type pattern
+        //type pattern filter
         if (filter.types) {
             const typesSet = new Set(filter.types);
             let typPattern = "";

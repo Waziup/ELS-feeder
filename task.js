@@ -7,7 +7,7 @@ const log = require('./log');
 const shortid = require('shortid');
 var Orion = require('./orion.js');
 
-const excludedAttributes = new Set(['id', 'type', 'owner', 'dateModified']);
+const excludedAttributes = new Set(['gateway_id', 'type', 'owner', 'dateModified']);
 const TriggerTypes = {
     Time: 'time',
     Subscription: 'subscription'
@@ -148,7 +148,7 @@ module.exports = class Task {
 
         // do this based on task's index type
         for (const sensor of sensors) {
-            index = this.generateIndex(sensor.servicePath);
+            index = this.generateIndex(sensor.domain);
             try {
                 await this.createIndex(index);
             } catch (err) {
@@ -177,19 +177,19 @@ module.exports = class Task {
                 received_time = received_time.toISOString();
 
                 let doc = {
-                    name: sensor.name,
-                    attribute: attribute.name,
+                    entity_id: sensor.id,
+                    measurement_id: attribute.name,
                     time: received_time,
                     [value]: attrVal
                 }
 
                 if (attribute.hasOwnProperty('attribute_timestamp')) {
                     attribute_timestamp = attribute.attribute_timestamp;
-                    doc['attribute_timestamp'] = attribute_timestamp;
+                    doc['measurement_timestamp'] = attribute_timestamp;
                     //log.info(`${attribute.name} has a timestamp ${attribute.timestamp}`);
-                    log.info(`Feeding sensor value: ${index}/${sensor.name}.${attribute.name} @ RT ${received_time} AT ${attribute_timestamp} =`, JSON.stringify(attrVal));
+                    log.info(`Feeding sensor value: ${index}/${sensor.id}.${attribute.name} @ RT ${received_time} AT ${attribute_timestamp} =`, JSON.stringify(attrVal));
                 } else
-                    log.info(`Feeding sensor value: ${index}/${sensor.name}.${attribute.name} @ RT ${received_time} =`, JSON.stringify(attrVal));
+                    log.info(`Feeding sensor value: ${index}/${sensor.id}.${attribute.name} @ RT ${received_time} =`, JSON.stringify(attrVal));
 
                 bulkBody.push({
                     index: {
@@ -249,12 +249,14 @@ module.exports = class Task {
                     && (!typesSet || typesSet.has(sensor.type))) {
                     const attributes = [];
                     //build attributes part
+                    // !excludedAttributes.has(attrName) &&
                     for (const attrName in sensor) {
-                        if (!excludedAttributes.has(attrName) &&
+                        if (sensor[attrName].hasOwnProperty('type') &&
+                            sensor[attrName].type === 'Measurement' &&
                             (!attributesSet || attributesSet.has(attrName))) {
-
+                            
                             if (sensor[attrName].hasOwnProperty('value'))
-                                attrVal = sensor[attrName].value;
+                                attrVal = sensor[attrName].value.value;
                             else
                                 attrVal = 'NA'
                             //log.info(`attrName value: ${attrName} ${attrVal}`);
@@ -263,36 +265,27 @@ module.exports = class Task {
                                 && sensor[attrName].metadata.hasOwnProperty('timestamp'))
                                 attributes.push({
                                     name: attrName,
-                                    type: sensor[attrName].type,
+                                    type: sensor[attrName].value.type,
                                     value: attrVal,
                                     attribute_timestamp: sensor[attrName].metadata.timestamp.value
                                 });
                             else
                                 attributes.push({
                                     name: attrName,
-                                    type: sensor[attrName].type,
+                                    type: sensor[attrName].value.type,
                                     value: attrVal
                                 });
                         }
                     }
 
-                    //if there is no data update time at sensor level, use the
-                    //receiving data time
-                    /*let dateModified;
-                    if (sensor.hasOwnProperty('dateModified'))
-                        dateModified = sensor.dateModified.value;
-                    else {
-                        dateModified = new Date();
-                        dateModified = dateModified.toISOString();
-                        log.info(`${sensor.id} dateModified does not exist: nowDate `, dateModified, " sensor.dateModified:", JSON.stringify(sensor.dateModified));
-                    }*/
-                    /*if (sensor.hasOwnProperty('name'))
-                        log.info(`sensor id ${sensor.id} has sensor name ${sensor.name.value}`)*/
+                    let domain = null;
+                    if(sensor.hasOwnProperty('domain'))
+                        domain = sensor.domain.value;
 
-                    //IMPORTANT id and name
                     results.push({
-                        name: sensor.id,
+                        id: sensor.id,
                         servicePath: servicePaths[spIndex],
+                        domain: domain,
                         attributes
                     });
                 }
@@ -304,7 +297,16 @@ module.exports = class Task {
         }
     }
 
-    generateIndex(servicePath) {
+    generateIndex(domain) {
+        let index = this.orionConfig.service;
+        if (domain) {
+            index = index.concat(domain);
+        }
+
+        return index.toLowerCase();
+    }
+
+    generateIndexSp(servicePath) {
         let index = this.orionConfig.service;
         if (servicePath !== '/') {
             const spPart = servicePath.replace(/\//g, "-");

@@ -3,13 +3,13 @@ const body = {
     mappings: {
         sensingNumber: {
             properties: {
-                name: {
+                entity_id: {
                     type: 'keyword'
                 },
-                attribute: {
+                measurement_id: {
                     type: 'keyword'
                 },
-                attribute_timestamp: {
+                measurement_timestamp: {
                     type: 'date'
                 },
                 time: {
@@ -25,13 +25,13 @@ const body = {
         },
         sensingGeo: {
             properties: {
-                name: {
+                entity_id: {
                     type: 'keyword'
                 },
-                attribute: {
+                measurement_id: {
                     type: 'keyword'
                 },
-                attribute_timestamp: {
+                measurement_timestamp: {
                     type: 'date'
                 },
                 time: {
@@ -47,13 +47,13 @@ const body = {
         },
         sensingText: {
             properties: {
-                name: {
+                entity_id: {
                     type: 'keyword'
                 },
-                attribute: {
+                measurement_id: {
                     type: 'keyword'
                 },
-                attribute_timestamp: {
+                measurement_timestamp: {
                     type: 'date'
                 },
                 time: {
@@ -69,13 +69,13 @@ const body = {
         },
         sensingObject: {
             properties: {
-                name: {
+                entity_id: {
                     type: 'keyword'
                 },
-                attribute: {
+                measurement_id: {
                     type: 'keyword'
                 },
-                attribute_timestamp: {
+                measurement_timestamp: {
                     type: 'date'
                 },
                 time: {
@@ -91,13 +91,13 @@ const body = {
         },
         sensingDate: {
             properties: {
-                name: {
+                entity_id: {
                     type: 'keyword'
                 },
-                attribute: {
+                measurement_id: {
                     type: 'keyword'
                 },
-                attribute_timestamp: {
+                measurement_timestamp: {
                     type: 'date'
                 },
                 time: {
