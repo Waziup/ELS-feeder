@@ -256,7 +256,7 @@ module.exports = class Task {
                             (!attributesSet || attributesSet.has(attrName))) {
                             
                             if (sensor[attrName].hasOwnProperty('value'))
-                                attrVal = sensor[attrName].value.value;
+                                attrVal = sensor[attrName].value//.value;
                             else
                                 attrVal = 'NA'
                             //log.info(`attrName value: ${attrName} ${attrVal}`);
@@ -265,14 +265,14 @@ module.exports = class Task {
                                 && sensor[attrName].metadata.hasOwnProperty('timestamp'))
                                 attributes.push({
                                     name: attrName,
-                                    type: sensor[attrName].value.type,
+                                    type: 'number',//sensor[attrName].value.type,
                                     value: attrVal,
                                     attribute_timestamp: sensor[attrName].metadata.timestamp.value
                                 });
                             else
                                 attributes.push({
                                     name: attrName,
-                                    type: sensor[attrName].value.type,
+                                    type: 'number',//sensor[attrName].value.type,
                                     value: attrVal
                                 });
                         }
@@ -326,7 +326,6 @@ module.exports = class Task {
         const data = await this.orion.fetchSensors();
         const servicePaths = data.map(entity => entity.servicePath.value)
         //log.info(`doPeriod ${servicePaths}`);
-        log.info('doPeriod', servicePaths);
         const sensors = await this.filterSensors(data, servicePaths);
         if (this.conf.trigger === TriggerTypes.Subscription) {
             const filter = this.conf.filter || {};
