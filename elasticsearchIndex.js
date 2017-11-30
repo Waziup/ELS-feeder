@@ -1,117 +1,80 @@
+
+function addMappingType(field) {
+    const fields = {
+        entity_id: {
+            type: 'keyword'
+        },
+        entity_name: {
+            type: 'text'
+        },
+        measurement_id: {
+            type: 'keyword'
+        },
+        measurement_timestamp: {
+            type: 'date'
+        },
+        measurement_dimension: {
+            type: 'keyword'
+        },
+        measurement_name: {
+            type: 'text'
+        },
+        sensor_kind: {
+            type: 'keyword'
+        },
+        measurement_unit: {
+            type: 'keyword'
+        },
+        received_time: {
+            type: 'date'
+        },
+        domain: {
+            type: 'keyword'
+        }
+    }
+
+    return Object.assign({}, fields, field);
+}
+
 // do this based on task's index type
 const body = {
     mappings: {
         sensingNumber: {
-            properties: {
-                entity_id: {
-                    type: 'keyword'
-                },
-                measurement_id: {
-                    type: 'keyword'
-                },
-                measurement_timestamp: {
-                    type: 'date'
-                },
-                time: {
-                    type: 'date'
-                },
-                value: {
+            properties: addMappingType({
+                measurement_value: {
                     type: 'double'
-                }, 
-                servicePath: {
-                    type: 'keyword'
                 }
-            }
+            })
         },
         sensingGeo: {
-            properties: {
-                entity_id: {
-                    type: 'keyword'
-                },
-                measurement_id: {
-                    type: 'keyword'
-                },
-                measurement_timestamp: {
-                    type: 'date'
-                },
-                time: {
-                    type: 'date'
-                },
-                geo: {
+            properties: addMappingType({
+                measurement_geo: {
                     type: 'geo_point'
-                }, 
-                servicePath: {
-                    type: 'keyword'
                 }
-            }
+            })
         },
         sensingText: {
-            properties: {
-                entity_id: {
-                    type: 'keyword'
-                },
-                measurement_id: {
-                    type: 'keyword'
-                },
-                measurement_timestamp: {
-                    type: 'date'
-                },
-                time: {
-                    type: 'date'
-                },
-                text: {
+            properties: addMappingType({
+                measurement_text: {
                     type: 'text'
-                }, 
-                servicePath: {
-                    type: 'keyword'
                 }
-            }
+            })
         },
         sensingObject: {
-            properties: {
-                entity_id: {
-                    type: 'keyword'
-                },
-                measurement_id: {
-                    type: 'keyword'
-                },
-                measurement_timestamp: {
-                    type: 'date'
-                },
-                time: {
-                    type: 'date'
-                },
-                object: {
+            properties: addMappingType({
+                measurement_object: {
                     type: 'object'
-                }, 
-                servicePath: {
-                    type: 'keyword'
                 }
-            }
+            })
         },
         sensingDate: {
-            properties: {
-                entity_id: {
-                    type: 'keyword'
-                },
-                measurement_id: {
-                    type: 'keyword'
-                },
-                measurement_timestamp: {
+            properties: addMappingType({
+                measurement_date: {
                     type: 'date'
-                },
-                time: {
-                    type: 'date'
-                },
-                date: {
-                    type: 'date'
-                }, 
-                servicePath: {
-                    type: 'keyword'
                 }
-            }
+            })
         }
     }
 }
 
-module.exports = {body}
+module.exports = { body }

@@ -143,7 +143,7 @@ module.exports = class Task {
         const bulkBodyGlobal = [];
         let attrType;
         let attrVal;
-        let value, attribute_timestamp;
+        let value;
         let index;
 
         // do this based on task's index type
@@ -177,19 +177,30 @@ module.exports = class Task {
                 received_time = received_time.toISOString();
 
                 let doc = {
-                    entity_id: sensor.id,
-                    measurement_id: attribute.name,
-                    time: received_time,
+                    entity_id: sensor.entity_id,
+                    measurement_id: attribute.measurement_id,
+                    received_time: received_time,
                     [value]: attrVal
                 }
 
-                if (attribute.hasOwnProperty('attribute_timestamp')) {
-                    attribute_timestamp = attribute.attribute_timestamp;
-                    doc['measurement_timestamp'] = attribute_timestamp;
+                if (sensor.hasOwnProperty('entity_name'))
+                    doc.entity_name = sensor.entity_name
+                if (sensor.hasOwnProperty('domain'))
+                    doc.domain = sensor.domain
+                if (attribute.hasOwnProperty('measurement_dimension'))
+                    doc.measurement_dimension = sensor.measurement_dimension
+                if (attribute.hasOwnProperty('measurement_name'))
+                    doc.measurement_name = sensor.measurement_name
+                if (attribute.hasOwnProperty('sensor_kind'))
+                    doc.sensor_kind = sensor.sensor_kind
+                if (attribute.hasOwnProperty('measurement_unit'))
+                    doc.measurement_unit = sensor.measurement_unit
+                if (attribute.hasOwnProperty('measurement_timestamp')) {
+                    doc['measurement_timestamp'] = attribute.measurement_timestamp;
                     //log.info(`${attribute.name} has a timestamp ${attribute.timestamp}`);
-                    log.info(`Feeding sensor value: ${index}/${sensor.id}.${attribute.name} @ RT ${received_time} AT ${attribute_timestamp} =`, JSON.stringify(attrVal));
+                    log.info(`Feeding sensor value: ${index}/${sensor.entity_id}.${attribute.measurement_id} @ RT ${received_time} AT ${attribute.measurement_timestamp} =`, JSON.stringify(attrVal));
                 } else
-                    log.info(`Feeding sensor value: ${index}/${sensor.id}.${attribute.name} @ RT ${received_time} =`, JSON.stringify(attrVal));
+                    log.info(`Feeding sensor value: ${index}/${sensor.entity_id}.${attribute.measurement_id} @ RT ${received_time} =`, JSON.stringify(attrVal));
 
                 bulkBody.push({
                     index: {
@@ -199,7 +210,7 @@ module.exports = class Task {
                 });
                 bulkBody.push(doc);
 
-                doc['servicePath'] = sensor.servicePath;
+                //doc['servicePath'] = sensor.servicePath;
                 bulkBodyGlobal.push({
                     index: {
                         _index: this.orionConfig.service,
@@ -250,44 +261,58 @@ module.exports = class Task {
                     const attributes = [];
                     //build attributes part
                     // !excludedAttributes.has(attrName) &&
-                    for (const attrName in sensor) {
-                        if (sensor[attrName].hasOwnProperty('type') &&
-                            sensor[attrName].type === 'Measurement' &&
-                            (!attributesSet || attributesSet.has(attrName))) {
-                            
-                            if (sensor[attrName].hasOwnProperty('value'))
-                                attrVal = sensor[attrName].value//.value;
+                    for (const attrId in sensor) {
+                        if (sensor[attrId].hasOwnProperty('type') &&
+                            sensor[attrId].type === 'Measurement' &&
+                            (!attributesSet || attributesSet.has(attrId))) {
+
+                            if (sensor[attrId].hasOwnProperty('value'))
+                                attrVal = sensor[attrId].value//.value;
                             else
                                 attrVal = 'NA'
                             //log.info(`attrName value: ${attrName} ${attrVal}`);
 
-                            if (sensor[attrName].hasOwnProperty('metadata')
-                                && sensor[attrName].metadata.hasOwnProperty('timestamp'))
-                                attributes.push({
-                                    name: attrName,
-                                    type: 'number',//sensor[attrName].value.type,
-                                    value: attrVal,
-                                    attribute_timestamp: sensor[attrName].metadata.timestamp.value
-                                });
-                            else
-                                attributes.push({
-                                    name: attrName,
-                                    type: 'number',//sensor[attrName].value.type,
-                                    value: attrVal
-                                });
+                            let attr = {
+                                measurement_id: attrId,
+                                type: 'number',//sensor[attrName].value.type,
+                                value: attrVal
+                            }
+
+                            if (sensor[attrId].hasOwnProperty('metadata')) {
+                                if (sensor[attrId].metadata.hasOwnProperty('timestamp'))
+                                    attr['measurement_timestamp'] = sensor[attrId].metadata.timestamp.value
+                                if (sensor[attrId].metadata.hasOwnProperty('dimension'))
+                                    attr['measurement_dimension'] = sensor[attrId].metadata.dimension.value
+                                if (sensor[attrId].metadata.hasOwnProperty('name'))
+                                    attr['measurement_name'] = sensor[attrId].metadata.name.value
+                                if (sensor[attrId].metadata.hasOwnProperty('sensor_kind'))
+                                    attr['sensor_kind'] = sensor[attrId].metadata.sensor_kind.value
+                                if (sensor[attrId].metadata.hasOwnProperty('unit'))
+                                    attr['measurement_unit'] = sensor[attrId].metadata.unit.value
+                                //if (sensor[attrId].metadata.hasOwnProperty(''))
+                                //   attr[] = sensor[attrId].metadata..value
+                            }
+
+                            attributes.push(attr);
                         }
                     }
 
-                    let domain = null;
-                    if(sensor.hasOwnProperty('domain'))
-                        domain = sensor.domain.value;
-
-                    results.push({
-                        id: sensor.id,
+                    let doc = {
+                        entity_id: sensor.id,
                         servicePath: servicePaths[spIndex],
-                        domain: domain,
                         attributes
-                    });
+                    }
+
+                    if (sensor.hasOwnProperty('domain'))
+                        doc.domain = sensor.domain.value;
+                    if (sensor.hasOwnProperty('name'))
+                        doc.entity_name = sensor.name.value;
+                    /*if (sensor.hasOwnProperty(''))
+                        doc[] = sensor..value;
+                    if (sensor.hasOwnProperty(''))
+                        doc[] = sensor..value;*/
+
+                    results.push(doc);
                 }
             }
             return results;
