@@ -148,6 +148,7 @@ module.exports = class Task {
 
         // do this based on task's index type
         for (const sensor of sensors) {
+            //FIXME: check domain existence
             index = this.generateIndex(sensor.domain);
             try {
                 await this.createIndex(index);
@@ -187,14 +188,15 @@ module.exports = class Task {
                     doc.entity_name = sensor.entity_name
                 if (sensor.hasOwnProperty('domain'))
                     doc.domain = sensor.domain
+
                 if (attribute.hasOwnProperty('measurement_dimension'))
-                    doc.measurement_dimension = sensor.measurement_dimension
+                    doc.measurement_dimension = attribute.measurement_dimension
                 if (attribute.hasOwnProperty('measurement_name'))
-                    doc.measurement_name = sensor.measurement_name
+                    doc.measurement_name = attribute.measurement_name
                 if (attribute.hasOwnProperty('sensor_kind'))
-                    doc.sensor_kind = sensor.sensor_kind
+                    doc.sensor_kind = attribute.sensor_kind
                 if (attribute.hasOwnProperty('measurement_unit'))
-                    doc.measurement_unit = sensor.measurement_unit
+                    doc.measurement_unit = attribute.measurement_unit
                 if (attribute.hasOwnProperty('measurement_timestamp')) {
                     doc['measurement_timestamp'] = attribute.measurement_timestamp;
                     //log.info(`${attribute.name} has a timestamp ${attribute.timestamp}`);
@@ -225,12 +227,13 @@ module.exports = class Task {
             try {
                 await this.es.bulk({ body: bulkBody },
                     function (err, resp) {
-                        if (!!err)
-                            log.info(`Error happened during bulk operation.`, JSON.stringify(err),
+
+                        if (resp.errors === true)
+                            log.info(`Error happened during bulk operation:`,
                                 JSON.stringify(resp));
-                        /*else
+                        else
                             log.info(`Bulk operation executed successfully.`,
-                                JSON.stringify(resp));*/
+                                JSON.stringify(resp));
                     });
 
                 await this.es.bulk({ body: bulkBodyGlobal },
@@ -253,9 +256,9 @@ module.exports = class Task {
             const attributesSet = filter.attributes ? new Set(filter.attributes) : null;
             const results = [];
             let attrVal;
-            let spIndex = -1;
+            //let spIndex = -1;
             for (const sensor of sensors) {
-                spIndex++;
+                //spIndex++;
                 if ((!idsSet || idsSet.has(sensor.id))
                     && (!typesSet || typesSet.has(sensor.type))) {
                     const attributes = [];
@@ -267,7 +270,7 @@ module.exports = class Task {
                             (!attributesSet || attributesSet.has(attrId))) {
 
                             if (sensor[attrId].hasOwnProperty('value'))
-                                attrVal = sensor[attrId].value//.value;
+                                attrVal = sensor[attrId].value.value;
                             else
                                 attrVal = 'NA'
                             //log.info(`attrName value: ${attrName} ${attrVal}`);
@@ -299,7 +302,7 @@ module.exports = class Task {
 
                     let doc = {
                         entity_id: sensor.id,
-                        servicePath: servicePaths[spIndex],
+                        //servicePath: servicePaths[spIndex],
                         attributes
                     }
 

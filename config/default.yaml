@@ -11,13 +11,13 @@ endpoint:
 
 # Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
 elasticsearch:
-  host: elasticsearch.waziup.io
-  port: 80
+  host: localhost
+  port: 9200
 
 # Defines the default Orion connection settings. Can be specialized in the same section in a task
 orion:
   # MUST NOT end with slash
-  uri: http://broker.waziup.io
+  uri: http://localhost:1026
 
 # Defines (multiple) tasks. Each task defines sensors and target index in ElasticSearch
 tasks:
@@ -26,7 +26,7 @@ tasks:
 #    - WS_FARM1_Sensor2
 #    - WS_FARM1_Sensor3
 #    - WS_FARM1_Sensor4
-- trigger: subscription
+- trigger: time
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
 #  If it is "subscription", Feeder listens to notifications and recreates the subscription every period below.
@@ -34,7 +34,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-  #period: 300000
+  period: 30000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5
@@ -57,37 +57,36 @@ tasks:
 #  elasticsearch:
 #    index: {servicePath}{year}{month}{day}
 
-
 #  Specifies the filter over the sensors discovered.
-  filter:
+#  filter:
 #  If set, only entities listed below will be considered. If missing, no filtering by IDs is done
-    ids:
-    - WS_FARM1_Sensor2
-    - WS_FARM1_Sensor3
-    - WS_FARM1_Sensor4
-    types:
-      - Farm
-      - type2
-      - type3
-- trigger: subscription
-  orion:
-    service: waziup
-    servicePath: /#
-- trigger: subscription
-  orion:
-      service: watersense
-      servicePath: /#
-  filter:
-      types:
-        - Farm
-- trigger: subscription
-  orion:
-        service: watersense
-        servicePath: /#
-  filter:
-        types:   
-          - SensingDevice
-  period: 600000
+#    ids:
+#    - WS_FARM1_Sensor2
+#    - WS_FARM1_Sensor3
+#    - WS_FARM1_Sensor4
+#    types:
+#      - Farm
+#      - type2
+#      - type3
+#- trigger: subscription
+#  orion:
+#    service: waziup
+#    servicePath: /#
+#- trigger: subscription
+#  orion:
+#      service: watersense
+#      servicePath: /#
+#  filter:
+#      types:
+#        - Farm
+#- trigger: subscription
+#  orion:
+#        service: watersense
+#        servicePath: /#
+#  filter:
+#        types:   
+#          - SensingDevice
+#  period: 600000
 #  If set, only attributes listed below will be considered. If missing, no filtering by attributes is done.
 #    attributes:
 #    - SM1
