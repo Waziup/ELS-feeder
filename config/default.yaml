@@ -10,14 +10,14 @@ endpoint:
   port: 9000
 
 # Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
-elasticsearch:
-  host: localhost
-  port: 9200
+elasticsearch: #elasticsearch.waziup.io
+  host: http://elasticsearch.waziup.io
+  port: 80 #9200
 
 # Defines the default Orion connection settings. Can be specialized in the same section in a task
 orion:
   # MUST NOT end with slash
-  uri: http://localhost:1026
+  uri: http://orion:1026
 
 # Defines (multiple) tasks. Each task defines sensors and target index in ElasticSearch
 tasks:

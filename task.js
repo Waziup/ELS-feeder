@@ -13,23 +13,60 @@ const TriggerTypes = {
     Subscription: 'subscription'
 };
 
+let el = false;
+
 module.exports = class Task {
     constructor(conf) {
         this.conf = conf;
         this.orionConfig = config.mergeWith(conf.orion, 'orion');
         this.orion = new Orion(this.orionConfig);
-
         this.esConfig = config.mergeWith(conf.elasticsearch, 'elasticsearch');
-        this.es = new elasticsearch.Client({
-            host: `${this.esConfig.host}:${this.esConfig.port}`
-            // , log: 'trace'
-        });
 
         this.indexExists = new Map();
         this.cid = shortid.generate();
     }
 
+
+    connectElasticsearch() {
+        this.es = new elasticsearch.Client({
+            host: `${this.esConfig.host}:${this.esConfig.port}`,
+            requestTimeout: 150000,
+        });
+    }
+    /*
+    pingElasticsearch() {
+        this.es.ping({
+            requestTimeout: 150000,
+        }, function (error) {
+            if (error) {
+                log.error('elasticsearch cluster is down!', error.message);
+                el = false;
+            } else {
+                log.info('All is well');
+                el = true;
+            }
+        });
+    }*/
+
     async init() {
+        try {
+            this.connectElasticsearch();
+            /*this.pingElasticsearch();
+            log.error(`el: ${el} `);
+            
+            while (el === false) {
+                log.error('Retrying to connect to elasticsearch...');
+                setInterval(() => { this.connectElasticsearch(); this.pingElasticsearch();}, 15000);                
+                log.error(`el: ${el} `);
+            }
+
+            if (el === true) {
+                log.info('DONE')
+            }*/ 
+        } catch (err) {
+            log.error('CONNECT:', err);
+        }
+
         // Discard all existing subscriptions that could relate to this task
         // (or some other from this instance of feeder)
         try {
@@ -52,7 +89,6 @@ module.exports = class Task {
         //automatic discovery: has been moved to other parts: subscriptions pattern, and doPeriod
         log.info('index:', JSON.stringify(index));
         if (this.indexExists.has(index) === false) {
-            this.indexExists.set(index, true);
             log.info('Creating/updating an index for', index);
             let flag = false;
             try {
@@ -68,6 +104,8 @@ module.exports = class Task {
                         index: index,
                         body: body.mappings
                     });
+                    this.indexExists.set(index, true);
+                    
                     /*updateAllTypes
                         Boolean — Whether to update the mapping for all fields with the same name across all types or not */
                 } catch (err) {
@@ -228,9 +266,11 @@ module.exports = class Task {
                 await this.es.bulk({ body: bulkBody },
                     function (err, resp) {
 
-                        if (resp.errors === true)
+                        if ( err || (
+                            resp.hasOwnProperty('errors') && 
+                            resp.errors === true) )
                             log.info(`Error happened during bulk operation:`,
-                                JSON.stringify(resp));
+                                JSON.stringify(err));
                         else
                             log.info(`Bulk operation executed successfully.`,
                                 JSON.stringify(resp));
@@ -238,7 +278,7 @@ module.exports = class Task {
 
                 await this.es.bulk({ body: bulkBodyGlobal },
                     function (err, resp) {
-                        if (!!err)
+                        if (err)
                             log.info(`Error happened during bulk operation.`, JSON.stringify(err),
                                 JSON.stringify(resp));
                     });
