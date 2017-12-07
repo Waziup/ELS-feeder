@@ -29,7 +29,7 @@ module.exports = class Task {
 
     connectElasticsearch() {
         this.es = new elasticsearch.Client({
-            host: `${this.esConfig.host}:${this.esConfig.port}`,
+            host: `${this.esConfig.uri}`,
             requestTimeout: 150000,
         });
     }
@@ -49,6 +49,8 @@ module.exports = class Task {
     }*/
 
     async init() {
+        log.info("ElasticSearch:", this.esConfig.uri, "Orion:", this.orionConfig.uri)
+        
         try {
             this.connectElasticsearch();
             /*this.pingElasticsearch();

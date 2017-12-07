@@ -11,8 +11,7 @@ endpoint:
 
 # Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
 elasticsearch: #elasticsearch.waziup.io
-  host: http://elasticsearch.waziup.io
-  port: 80 #9200
+  uri: http://elasticsearchcc.waziup.io
 
 # Defines the default Orion connection settings. Can be specialized in the same section in a task
 orion:
