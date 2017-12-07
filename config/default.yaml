@@ -11,7 +11,7 @@ endpoint:
 
 # Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
 elasticsearch: #elasticsearch.waziup.io
-  uri: http://elasticsearchcc.waziup.io
+  uri: http://elasticsearch:9200
 
 # Defines the default Orion connection settings. Can be specialized in the same section in a task
 orion:

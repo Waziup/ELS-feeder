@@ -312,7 +312,7 @@ module.exports = class Task {
                             (!attributesSet || attributesSet.has(attrId))) {
 
                             if (sensor[attrId].hasOwnProperty('value'))
-                                attrVal = sensor[attrId].value.value;
+                                attrVal = sensor[attrId].value;
                             else
                                 attrVal = 'NA'
                             //log.info(`attrName value: ${attrName} ${attrVal}`);
