@@ -280,7 +280,7 @@ module.exports = class Task {
                 await this.es.bulk({ body: bulkBodyGlobal },
                     function (err, resp) {
                         if (err)
-                            log.info(`Error happened during bulk operation.`, JSON.stringify(err),
+                            log.info(`Error happened during bulk operation into global index.`, JSON.stringify(err),
                                 JSON.stringify(resp));
                     });
             } catch (err) {
@@ -370,7 +370,8 @@ module.exports = class Task {
         let index = this.orionConfig.service;
         if (domain) {
             index = index.concat(domain);
-        }
+        } else // if a senosr does not have a domain, it will be stored in service-root index
+            index = index.concat('-root');
 
         return index.toLowerCase();
     }
