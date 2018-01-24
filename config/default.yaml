@@ -4,10 +4,10 @@ endpoint:
   # Unique ID of the Feeder instance
   id: tb2
   # URL at which Feeder endpoint can be reached
-  url: http://feeder2
+  url: http://els-feeder
   # Host/port to which Feeder should bind
   host: 0.0.0.0
-  port: 9000
+  port: 9100
 
 # Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
 elasticsearch: #elasticsearch.waziup.io

@@ -399,7 +399,7 @@ module.exports = class Task {
         const sensors = await this.filterSensors(data, servicePaths);
         if (this.conf.trigger === TriggerTypes.Subscription) {
             const filter = this.conf.filter || {};
-            await this.orion.subscribe(this._getSubscriptionDesc(), this.cid, config.get('endpoint.url'), filter);
+            await this.orion.subscribe(this._getSubscriptionDesc(), this.cid, config.get('endpoint.url').concat(config.get('endpoint.port')), filter);
         } else {
             await this.feedToElasticsearch(sensors);
         }

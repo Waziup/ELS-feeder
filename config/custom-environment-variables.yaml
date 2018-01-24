@@ -1,6 +1,7 @@
 # Defines the environment variables from docker-compose
 endpoint:
   port: SERVER_PORT
+  url: FEEDER_NAME
 
 elasticsearch:
   uri: ELASTICSEARCH_URL

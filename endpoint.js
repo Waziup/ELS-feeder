@@ -31,7 +31,7 @@ app.use('/api', router);
 
 async function run() {
     await new Promise(resolve => app.listen(config.get('endpoint.port'), config.get('endpoint.host'), () => resolve()));
-    log.info('Listening on port ', config.get('endpoint.port'));
+    log.info('Listening at ', config.get('endpoint.host'), config.get('endpoint.port'));
 }
 
 module.exports.run = run;
