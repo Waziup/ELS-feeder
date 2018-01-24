@@ -29,7 +29,7 @@ module.exports = class Task {
 
     connectElasticsearch() {
         this.es = new elasticsearch.Client({
-            host: `${this.esConfig.host}:${this.esConfig.port}`,
+            host: `${this.esConfig.uri}`,
             requestTimeout: 150000,
         });
     }
@@ -49,6 +49,8 @@ module.exports = class Task {
     }*/
 
     async init() {
+        log.info("ElasticSearch:", this.esConfig.uri, "Orion:", this.orionConfig.uri)
+        
         try {
             this.connectElasticsearch();
             /*this.pingElasticsearch();
@@ -64,7 +66,7 @@ module.exports = class Task {
                 log.info('DONE')
             }*/ 
         } catch (err) {
-            log.error('CONNECT:', err);
+            log.error('CONNECT:', JSON.stringify(err));
         }
 
         // Discard all existing subscriptions that could relate to this task
@@ -79,7 +81,7 @@ module.exports = class Task {
                 }
             }
         } catch (err) {
-            log.error(err);
+            log.error(JSON.stringify(err));
         }
     }
 
@@ -94,7 +96,7 @@ module.exports = class Task {
             try {
                 flag = await this.es.indices.exists({ index: index });
             } catch (err) {
-                log.error("ERROR in checking index", err);
+                log.error("ERROR in checking index", JSON.stringify(err));
             }
 
             if (!flag) {
@@ -109,7 +111,7 @@ module.exports = class Task {
                     /*updateAllTypes
                         Boolean — Whether to update the mapping for all fields with the same name across all types or not */
                 } catch (err) {
-                    log.error("ERROR in creating index", err);
+                    log.error("ERROR in creating index", JSON.stringify(err));
                 }
             } else {
                 log.info('Updating mappings of index for ', index);
@@ -124,7 +126,7 @@ module.exports = class Task {
                         });
                         log.info('putMapping operation: ', JSON.stringify(ret));
                     } catch (err) {
-                        log.error("ERROR in putMapping", err);
+                        log.error("ERROR in putMapping", JSON.stringify(err));
                     }
                 }
             }
@@ -149,7 +151,7 @@ module.exports = class Task {
                             body: body.mappings
                         });
                     } catch (err) {
-                        log.error("ERROR in creating index", err);
+                        log.error("ERROR in creating index", JSON.stringify(err));
                         continue;
                     }
 
@@ -166,7 +168,7 @@ module.exports = class Task {
                             });
                             log.info('putMapping operation: ', JSON.stringify(ret));
                         } catch (err) {
-                            log.error("ERROR in putMapping", err);
+                            log.error("ERROR in putMapping", JSON.stringify(err));
                             continue;
                         }
                     }
@@ -193,7 +195,7 @@ module.exports = class Task {
             try {
                 await this.createIndex(index);
             } catch (err) {
-                log.error(err);
+                log.error(JSON.stringify(err));
             }
 
             for (const attribute of sensor.attributes) {
@@ -282,7 +284,7 @@ module.exports = class Task {
                                 JSON.stringify(resp));
                     });
             } catch (err) {
-                log.error("ERROR in bulk operation", err);
+                log.error("ERROR in bulk operation", JSON.stringify(err));
             }
         }
     }
@@ -309,7 +311,7 @@ module.exports = class Task {
                             (!attributesSet || attributesSet.has(attrId))) {
 
                             if (sensor[attrId].hasOwnProperty('value'))
-                                attrVal = sensor[attrId].value.value;
+                                attrVal = sensor[attrId].value;
                             else
                                 attrVal = 'NA'
                             //log.info(`attrName value: ${attrName} ${attrVal}`);
@@ -359,7 +361,7 @@ module.exports = class Task {
             }
             return results;
         } catch (err) {
-            log.error("ERROR in filterSensors", err);
+            log.error("ERROR in filterSensors", JSON.stringify(err));
             return [];
         }
     }

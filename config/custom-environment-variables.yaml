@@ -1,0 +1,9 @@
+# Defines the environment variables from docker-compose
+endpoint:
+  port: SERVER_PORT
+
+elasticsearch:
+  uri: ELASTICSEARCH_URL
+
+orion:
+  uri: ORION_URL

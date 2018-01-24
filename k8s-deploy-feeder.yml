@@ -9,9 +9,8 @@ data:
       id: tb2
       url: http://feeder
     elasticsearch:
-      host: elasticsearch
-      port: 9200
-    
+      uri: elasticsearch:9200   
+      
     orion:
       # MUST NOT end with slash
       uri: http://orion:1026
