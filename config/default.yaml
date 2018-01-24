@@ -25,7 +25,7 @@ tasks:
 #    - WS_FARM1_Sensor2
 #    - WS_FARM1_Sensor3
 #    - WS_FARM1_Sensor4
-- trigger: time
+- trigger: subscription
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
 #  If it is "subscription", Feeder listens to notifications and recreates the subscription every period below.
@@ -33,7 +33,7 @@ tasks:
 #  new sensors will be automatically included in the subscription.
 #  Note that Orion sends a notification every time a subscription is recreated.
 
-  period: 30000
+#  period: 30000
 
 # Specifies the throttling (in seconds) when subscription is used. If not specified, no throttling will be applied.
 # throttling: 5
