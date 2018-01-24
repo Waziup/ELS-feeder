@@ -5,7 +5,7 @@ function addMappingType(field) {
             type: 'keyword'
         },
         entity_name: {
-            type: 'text'
+            type: 'keyword'
         },
         measurement_id: {
             type: 'keyword'
@@ -17,7 +17,7 @@ function addMappingType(field) {
             type: 'keyword'
         },
         measurement_name: {
-            type: 'text'
+            type: 'keyword'
         },
         sensor_kind: {
             type: 'keyword'
@@ -56,7 +56,7 @@ const body = {
         sensingText: {
             properties: addMappingType({
                 measurement_text: {
-                    type: 'text'
+                    type: 'keyword'
                 }
             })
         },

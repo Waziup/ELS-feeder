@@ -183,6 +183,8 @@ module.exports = class Task {
         let attrVal;
         let value;
         let index;
+        let received_time = new Date();
+        received_time = received_time.toISOString();
 
         // do this based on task's index type
         for (const sensor of sensors) {
@@ -211,9 +213,6 @@ module.exports = class Task {
                         log.error(`Unsupported attribute type: ${attribute.type} in ${index}/${sensor.name}.${attribute.name}`);
                         continue;
                 }
-
-                let received_time = new Date();
-                received_time = received_time.toISOString();
 
                 let doc = {
                     entity_id: sensor.entity_id,

@@ -12,7 +12,6 @@ config.getOrElse = (key, defaultValue) => {
 }
 
 config.mergeWith = (obj, key) => {
-  //  return Object.assign(config.getOrElse(key, {}), obj || {});
     return Object.assign({}, config.getOrElse(key, {}), obj || {});
 }
 
