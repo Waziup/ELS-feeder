@@ -10,6 +10,7 @@ data:
       url: http://feeder
     elasticsearch:
       uri: elasticsearch:9200   
+      elsPrefix: waziup
       
     orion:
       # MUST NOT end with slash

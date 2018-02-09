@@ -5,6 +5,7 @@ endpoint:
 
 elasticsearch:
   uri: ELASTICSEARCH_URL
+  elsPrefix: ELASTICSEARCH_PREFIX
 
 orion:
   uri: ORION_URL

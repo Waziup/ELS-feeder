@@ -10,13 +10,13 @@ endpoint:
   port: 9100
 
 # Defines the default ElasticSearch connection settings. Can be specialized in the same section in a task
-elasticsearch: #elasticsearch.waziup.io
-  uri: http://elasticsearch:9200
-
+elasticsearch:
+  uri: http://elasticsearch.waziup.io #http://elasticsearch:9200
+  elsPrefix: waziup
 # Defines the default Orion connection settings. Can be specialized in the same section in a task
 orion:
-  # MUST NOT end with slash
-  uri: http://orion:1026
+  # MUST NOT end with slash uri: http://orion:1026
+  uri: http://broker.waziup.io
 
 # Defines (multiple) tasks. Each task defines sensors and target index in ElasticSearch
 tasks:
@@ -25,7 +25,7 @@ tasks:
 #    - WS_FARM1_Sensor2
 #    - WS_FARM1_Sensor3
 #    - WS_FARM1_Sensor4
-- trigger: subscription
+- trigger: time
 #  Trigger types are: "time", "subscription"
 #  If it is "time", Feeder periodically polls Orion with the period specified below
 #  If it is "subscription", Feeder listens to notifications and recreates the subscription every period below.

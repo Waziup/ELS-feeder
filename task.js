@@ -133,54 +133,9 @@ module.exports = class Task {
         }
     }
 
-    async createIndexes0() {
-        //automatic discovery
-        let allSps = await this.orion.fetchServicePaths();
-        for (let indexName of allSps) {
-            //log.info('indexName:', JSON.stringify(indexName));
-            //let indexName = this.generateIndex(sp);
-            if (this.indexExists.has(indexName) === false) {
-                log.info('Creating/updating index for', indexName);
-                let flag = await this.es.indices.exists({ index: indexName });
-                this.indexExists.set(indexName, true);
-                if (!flag) {
-                    log.info('Creating an index for ', indexName);
-                    try {
-                        await this.es.indices.create({
-                            index: indexName,
-                            body: body.mappings
-                        });
-                    } catch (err) {
-                        log.error("ERROR in creating index", JSON.stringify(err));
-                        continue;
-                    }
-
-                } else {
-                    log.info('Updating mappings of index for ', indexName);
-                    // do this based on task's index type
-                    for (let mapType in body.mappings) {
-                        log.info(mapType, body.mappings[mapType]);
-                        try {
-                            const ret = await this.es.indices.putMapping({
-                                index: indexName,
-                                body: body.mappings[mapType],
-                                type: mapType
-                            });
-                            log.info('putMapping operation: ', JSON.stringify(ret));
-                        } catch (err) {
-                            log.error("ERROR in putMapping", JSON.stringify(err));
-                            continue;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     //sensors data are filtered via ...
     async feedToElasticsearch(sensors) {
         const bulkBody = [];
-        const bulkBodyGlobal = [];
         let attrType;
         let attrVal;
         let value;
@@ -250,15 +205,6 @@ module.exports = class Task {
                     }
                 });
                 bulkBody.push(doc);
-
-                //doc['servicePath'] = sensor.servicePath;
-                bulkBodyGlobal.push({
-                    index: {
-                        _index: this.orionConfig.service,
-                        _type: attrType
-                    }
-                });
-                bulkBodyGlobal.push(doc);
             }
         }
 
@@ -276,13 +222,6 @@ module.exports = class Task {
                             log.info(`Bulk operation executed successfully.`,
                                 JSON.stringify(resp));
                     });
-
-                await this.es.bulk({ body: bulkBodyGlobal },
-                    function (err, resp) {
-                        if (err)
-                            log.info(`Error happened during bulk operation into global index.`, JSON.stringify(err),
-                                JSON.stringify(resp));
-                    });
             } catch (err) {
                 log.error("ERROR in bulk operation", JSON.stringify(err));
             }
@@ -297,14 +236,11 @@ module.exports = class Task {
             const attributesSet = filter.attributes ? new Set(filter.attributes) : null;
             const results = [];
             let attrVal;
-            //let spIndex = -1;
             for (const sensor of sensors) {
-                //spIndex++;
                 if ((!idsSet || idsSet.has(sensor.id))
                     && (!typesSet || typesSet.has(sensor.type))) {
                     const attributes = [];
-                    //build attributes part
-                    // !excludedAttributes.has(attrName) &&
+
                     for (const attrId in sensor) {
                         if (sensor[attrId].hasOwnProperty('type') &&
                             sensor[attrId].type === 'Measurement' &&
@@ -314,11 +250,10 @@ module.exports = class Task {
                                 attrVal = sensor[attrId].value;
                             else
                                 attrVal = 'NA'
-                            //log.info(`attrName value: ${attrName} ${attrVal}`);
 
                             let attr = {
                                 measurement_id: attrId,
-                                type: 'number',//sensor[attrName].value.type,
+                                type: sensor[attrName].value.type, //'number'
                                 value: attrVal
                             }
 
@@ -333,8 +268,6 @@ module.exports = class Task {
                                     attr['sensor_kind'] = sensor[attrId].metadata.sensor_kind.value
                                 if (sensor[attrId].metadata.hasOwnProperty('unit'))
                                     attr['measurement_unit'] = sensor[attrId].metadata.unit.value
-                                //if (sensor[attrId].metadata.hasOwnProperty(''))
-                                //   attr[] = sensor[attrId].metadata..value
                             }
 
                             attributes.push(attr);
@@ -343,7 +276,6 @@ module.exports = class Task {
 
                     let doc = {
                         entity_id: sensor.id,
-                        //servicePath: servicePaths[spIndex],
                         attributes
                     }
 
@@ -351,10 +283,6 @@ module.exports = class Task {
                         doc.domain = sensor.domain.value;
                     if (sensor.hasOwnProperty('name'))
                         doc.entity_name = sensor.name.value;
-                    /*if (sensor.hasOwnProperty(''))
-                        doc[] = sensor..value;
-                    if (sensor.hasOwnProperty(''))
-                        doc[] = sensor..value;*/
 
                     results.push(doc);
                 }
@@ -367,22 +295,10 @@ module.exports = class Task {
     }
 
     generateIndex(domain) {
-        let index = this.orionConfig.service;
-        if (domain) {
-            index = index.concat(domain);
-        } else // if a senosr does not have a domain, it will be stored in service-root index
-            index = index.concat('-root');
+        let index = this.esConfig.elsPrefix;
 
-        return index.toLowerCase();
-    }
-
-    generateIndexSp(servicePath) {
-        let index = this.orionConfig.service;
-        if (servicePath !== '/') {
-            const spPart = servicePath.replace(/\//g, "-");
-            index = index.concat(spPart);
-        } else
-            index = index.concat('-root');
+        if (domain)
+            index = index + '-' + domain;
 
         return index.toLowerCase();
     }
@@ -395,7 +311,6 @@ module.exports = class Task {
         await this.orion.unsubscribe();
         const data = await this.orion.fetchSensors();
         const servicePaths = data.map(entity => entity.servicePath.value)
-        //log.info(`doPeriod ${servicePaths}`);
         const sensors = await this.filterSensors(data, servicePaths);
         if (this.conf.trigger === TriggerTypes.Subscription) {
             const filter = this.conf.filter || {};
