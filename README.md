@@ -1,4 +1,19 @@
-    /* http://handlebarsjs.com/
+# Feeder
+This is a service to push the data from Orion to ElasticSearch.
+
+# Branches
+Based on the context of the deployment
+- newapi: this branch targets new WAZIUP api data model, and create elasticsearch mappings and data model to match this new API. The configuration for this feeder is bounded to docker-compose model. You should look at Waziup/Platform repository for that. For deployment, and testing, etc. you need to look at Waziup/Platform documentation.
+- waziup: this branch targets old WAZIUP api data model. The configuration for this feeder is bounded to Kubernetes. The main config file is k8s-deploy-feeder.yml. If you make changes to the source code, and need to build a new image, and tag; edit file deploy-image.sh, and run it in order to build and push the new image. In order to deploy that use deploy-k8s.sh script.
+
+# Development, Test, Misc
+
+
+
+
+
+
+/* http://handlebarsjs.com/
      const hbs = require('handlebars');
     
     const tmpl = hbs.compile(config.elasticsearch.index);
