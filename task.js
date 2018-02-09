@@ -22,7 +22,8 @@ module.exports = class Task {
         this.esConfig = config.mergeWith(conf.elasticsearch, 'elasticsearch');
         this.es = new elasticsearch.Client({
             host: `${this.esConfig.host}:${this.esConfig.port}`
-            // , log: 'trace'
+           // , log: 'trace'
+           , apiVersion: "6.0"
         });
 
         this.indexExists = new Map();
@@ -214,9 +215,9 @@ module.exports = class Task {
             try {
                 await this.es.bulk({ body: bulkBody },
                     function (err, resp) {
-                        if (!!err)
-                            log.info(`Error happened during bulk operation.`, JSON.stringify(err),
-                                JSON.stringify(resp));
+                        if (err)
+                            log.info(`Error happened during bulk operation sensor index.`, JSON.stringify(err));
+                            log.info('resp', JSON.stringify(resp));
                         /*else
                             log.info(`Bulk operation executed successfully.`,
                                 JSON.stringify(resp));*/
@@ -224,9 +225,9 @@ module.exports = class Task {
 
                 await this.es.bulk({ body: bulkBodyGlobal },
                     function (err, resp) {
-                        if (!!err)
-                            log.info(`Error happened during bulk operation.`, JSON.stringify(err),
-                                JSON.stringify(resp));
+                        if (err)
+                            log.info(`Error happened during bulk operation waziup global index.`, JSON.stringify(err));
+                            log.info('resp', JSON.stringify(resp));
                     });
             } catch (err) {
                 log.error("ERROR in bulk operation", err);
