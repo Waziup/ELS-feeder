@@ -13,7 +13,7 @@ async function feedData(taskCid, data, servicePaths) {
     await task.feedToElasticsearch(sensors);
 }
 
-async function run() {    
+async function run() {
     const taskConfs = config.get('tasks');
 
     for (const conf of taskConfs) {
@@ -26,14 +26,25 @@ async function run() {
     for (const taskCid in tasks) {
         const task = tasks[taskCid];
         setTimeout(async () => {
-            await task.doPeriod();
             if (task.conf.period) {
                 setInterval(() => task.doPeriod(), task.conf.period);
+            } else {
+                const id = setInterval(async () => {
+                    try {
+                        const ret = await task.doPeriod();
+                        if (ret === 'success') {
+                            clearInterval(id);
+                            //console.log('canceling', id);
+                        }
+                    } catch (err) {
+                        console.log('catch of feeder.run:', err);
+                    }
+                }, 60000 /*every minute*/);
             }
         }, accumulatedDelay);
 
-        accumulatedDelay += delay;
-    }
+    accumulatedDelay += delay;
+}
 }
 
 module.exports.run = run;

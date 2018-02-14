@@ -146,7 +146,7 @@ module.exports = class Orion {
             sub.throttling = this.orionConfig.throttling;
         }
 
-        return new Promise(resolve => {
+        return new Promise((resolve,fail) => {
             rp({
                 method: 'POST',
                 uri: `${this.orionConfig.uri}/v2/subscriptions`,
@@ -159,14 +159,16 @@ module.exports = class Orion {
             }, (err, msg, body) => {
                 if (err) {
                     log.error(err);
+                    fail('OrionException1');
                 } else {
                     if (!msg.headers.location) {
-                        log.error('Subscription failed.')
+                        log.error('Subscription failed.');
+                        fail('OrionException2');
                     } else {
                         this.subscriptionId = msg.headers.location.replace(/.*v2\/subscriptions\/(.*)/, '$1');
                     }
                 }
-                resolve();
+                resolve('success');
             });
         });
     }

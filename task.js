@@ -22,8 +22,8 @@ module.exports = class Task {
         this.esConfig = config.mergeWith(conf.elasticsearch, 'elasticsearch');
         this.es = new elasticsearch.Client({
             host: `${this.esConfig.host}:${this.esConfig.port}`
-           // , log: 'trace'
-           , apiVersion: "6.0"
+            // , log: 'trace'
+            , apiVersion: "6.0"
         });
 
         this.indexExists = new Map();
@@ -217,7 +217,7 @@ module.exports = class Task {
                     function (err, resp) {
                         if (err)
                             log.info(`Error happened during bulk operation sensor index.`, JSON.stringify(err));
-                            log.info('resp', JSON.stringify(resp));
+                        log.info('resp', JSON.stringify(resp));
                         /*else
                             log.info(`Bulk operation executed successfully.`,
                                 JSON.stringify(resp));*/
@@ -227,7 +227,7 @@ module.exports = class Task {
                     function (err, resp) {
                         if (err)
                             log.info(`Error happened during bulk operation waziup global index.`, JSON.stringify(err));
-                            log.info('resp', JSON.stringify(resp));
+                        log.info('resp', JSON.stringify(resp));
                     });
             } catch (err) {
                 log.error("ERROR in bulk operation", err);
@@ -325,11 +325,18 @@ module.exports = class Task {
         const data = await this.orion.fetchSensors();
         const servicePaths = data.map(entity => entity.servicePath.value)
         //log.info(`doPeriod ${servicePaths}`);
-        log.info('doPeriod', servicePaths);
         const sensors = await this.filterSensors(data, servicePaths);
+        
         if (this.conf.trigger === TriggerTypes.Subscription) {
             const filter = this.conf.filter || {};
-            await this.orion.subscribe(this._getSubscriptionDesc(), this.cid, config.get('endpoint.url'), filter);
+            try {
+                const ret = await this.orion.subscribe(this._getSubscriptionDesc(),
+                    this.cid, config.get('endpoint.url'), filter);
+                return ret;
+            } catch (err) {
+                console.log('catch of doPeriod:', err);
+                throw 'doPeriodException'
+            }
         } else {
             await this.feedToElasticsearch(sensors);
         }

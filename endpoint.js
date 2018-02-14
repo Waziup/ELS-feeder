@@ -8,8 +8,8 @@ const log = require('./log');
 const helpers = require('./helpers');
 const feeder = require('./feeder');
 
-
 const router = express.Router();
+
 router.post('/update/:cid', helpers.safeHandler(async (req, res) => {
     //log.info('Received data from Orion ')
     //log.info('req.headers', req.headers);
