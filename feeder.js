@@ -34,17 +34,16 @@ async function run() {
                         const ret = await task.doPeriod();
                         if (ret === 'success') {
                             clearInterval(id);
-                            //console.log('canceling', id);
                         }
                     } catch (err) {
-                        console.log('catch of feeder.run:', err);
+                        log.error('catch of feeder.run:', err);
                     }
                 }, 60000 /*every minute*/);
             }
         }, accumulatedDelay);
 
-    accumulatedDelay += delay;
-}
+        accumulatedDelay += delay;
+    }
 }
 
 module.exports.run = run;

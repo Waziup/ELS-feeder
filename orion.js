@@ -21,16 +21,23 @@ module.exports = class Orion {
     }
 
     async getSubscriptions() {
-        const resp = await rp({
-            uri: `${this.orionConfig.uri}/v2/subscriptions`,
-            headers: {
-                'Fiware-Service': this.orionConfig.service,
-                'Fiware-ServicePath': this.orionConfig.servicePath
-            },
-            json: true
+        return new Promise((resolve, fail) => {
+            rp({
+                uri: `${this.orionConfig.uri}/v2/subscriptions`,
+                headers: {
+                    'Fiware-Service': this.orionConfig.service,
+                    'Fiware-ServicePath': this.orionConfig.servicePath
+                },
+                json: true
+            }, (err, msg, body) => {
+                if (err) {
+                    log.error(err);
+                    fail('OrionException_getSubscriptions');
+                }
+                //console.log('msg body', msg.body);
+                resolve(body);
+            });
         });
-
-        return resp;
     }
 
     generateIndex(servicePath) {
@@ -97,7 +104,7 @@ module.exports = class Orion {
         entities. Both cannot be used at the same time. If omitted, it means 
         "any entity type".
         */
-        
+
         //type pattern
         if (filter.types) {
             const typesSet = new Set(filter.types);
@@ -117,10 +124,10 @@ module.exports = class Orion {
         if (filter.ids) {
             const idsSet = new Set(filter.ids);
             //const ids = []
-            for(const id of idsSet)
-                entities.push({id: id});
+            for (const id of idsSet)
+                entities.push({ id: id });
             //entities.push(ids);
-        } else if (filter.hasOwnProperty('types') === false) { 
+        } else if (filter.hasOwnProperty('types') === false) {
             //otherwise, apply idPattern for all entities
             entities.push({
                 "idPattern": ".*"
@@ -146,7 +153,7 @@ module.exports = class Orion {
             sub.throttling = this.orionConfig.throttling;
         }
 
-        return new Promise((resolve,fail) => {
+        return new Promise((resolve, fail) => {
             rp({
                 method: 'POST',
                 uri: `${this.orionConfig.uri}/v2/subscriptions`,

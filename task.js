@@ -13,6 +13,8 @@ const TriggerTypes = {
     Subscription: 'subscription'
 };
 
+esOK = false;
+
 module.exports = class Task {
     constructor(conf) {
         this.conf = conf;
@@ -20,37 +22,65 @@ module.exports = class Task {
         this.orion = new Orion(this.orionConfig);
 
         this.esConfig = config.mergeWith(conf.elasticsearch, 'elasticsearch');
-        this.es = new elasticsearch.Client({
-            host: `${this.esConfig.host}:${this.esConfig.port}`
-            // , log: 'trace'
-            , apiVersion: "6.0"
-        });
 
         this.indexExists = new Map();
         this.cid = shortid.generate();
+        this.es = null;
+        this.orionOK = false;
+
+
     }
 
     async init() {
+        const id = setInterval(async () => {
+            this.es = new elasticsearch.Client({
+                host: `${this.esConfig.host}:${this.esConfig.port}`
+                // , log: 'trace'
+                , apiVersion: "6.0"
+            });
+            this.es.ping({
+                requestTimeout: 3000,
+            }, async function (error) {
+                if (error) {
+                    log.error('elasticsearch cluster is down!catch of task.init for elasticsearch:', error);
+                    esOK = false;
+                } else {
+                    log.info('elasticsearch OK.');
+                    esOK = true;
+                    clearInterval(id);
+                }
+            });
+        }, 3000 /*every minute*/);
+
         // Discard all existing subscriptions that could relate to this task
         // (or some other from this instance of feeder)
-        try {
-            await this.createIndex(this.orionConfig.service);
-            const expectedDesc = this._getSubscriptionDesc();
-            const resp = await this.orion.getSubscriptions();
-            for (const entry of resp) {
-                if (entry.description === expectedDesc) {
-                    await this.orion.deleteSubscription(entry.id);
+        const expectedDesc = this._getSubscriptionDesc();
+        const id2 = setInterval(async () => {
+            try {
+                const resp = await this.orion.getSubscriptions();
+                log.info('orion OK.');
+                for (const entry of resp) {
+                    if (entry.description === expectedDesc) {
+                        log.info('Deleting subscription', entry.description)
+                        await this.orion.deleteSubscription(entry.id);
+                    }
                 }
+                this.orionOK = true;
+                clearInterval(id2);
+            } catch (err) { //OrionException_getSubscriptions
+                log.error(err);
+                this.orionOK = false;
             }
-        } catch (err) {
-            log.error(err);
-        }
+        }, 30000 /*every minute*/);
     }
 
     //Create an index in Elasticsearch if it does not exist yet
     //This is to support automatic discovery of sensors and service paths
     async createIndex(index) {
         //automatic discovery: has been moved to other parts: subscriptions pattern, and doPeriod
+        if (esOK === false)
+            throw 'esException';
+
         log.info('index:', JSON.stringify(index));
         if (this.indexExists.has(index) === false) {
             this.indexExists.set(index, true);
@@ -321,24 +351,33 @@ module.exports = class Task {
     }
 
     async doPeriod() {
-        await this.orion.unsubscribe();
-        const data = await this.orion.fetchSensors();
-        const servicePaths = data.map(entity => entity.servicePath.value)
-        //log.info(`doPeriod ${servicePaths}`);
-        const sensors = await this.filterSensors(data, servicePaths);
-        
-        if (this.conf.trigger === TriggerTypes.Subscription) {
-            const filter = this.conf.filter || {};
-            try {
-                const ret = await this.orion.subscribe(this._getSubscriptionDesc(),
-                    this.cid, config.get('endpoint.url'), filter);
-                return ret;
-            } catch (err) {
-                console.log('catch of doPeriod:', err);
-                throw 'doPeriodException'
+        try {
+            await this.orion.unsubscribe();
+            const data = await this.orion.fetchSensors();
+            const servicePaths = data.map(entity => entity.servicePath.value)
+            //log.info(`doPeriod ${servicePaths}`);
+            const sensors = await this.filterSensors(data, servicePaths);
+            if (this.conf.trigger === TriggerTypes.Subscription) {
+                if (this.orionOK === false)
+                    throw 'doPeriodException';
+
+                const filter = this.conf.filter || {};
+                try {
+                    const ret = await this.orion.subscribe(this._getSubscriptionDesc(),
+                        this.cid, config.get('endpoint.url'), filter);
+                    return ret;
+                } catch (err) {
+                    log.error('catch of doPeriod:', err);
+                    throw 'doPeriodException'
+                }
+            } else {
+                await this.feedToElasticsearch(sensors);
             }
-        } else {
-            await this.feedToElasticsearch(sensors);
+        } catch (err) {
+            log.error('catch of doPeriod:', err);
+            throw 'doPeriodException'
         }
+
+
     }
 }
