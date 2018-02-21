@@ -50,7 +50,7 @@ spec:
     spec:
       containers:
       - name: feeder
-        image: waziup/feeder:oldApi
+        image: waziup/feeder:V4_REL_oldApi
         env:
         - name: FEEDER_EXTRA_CONFIG_DIR
           value: /etc/feeder/
