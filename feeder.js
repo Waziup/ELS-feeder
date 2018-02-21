@@ -27,6 +27,7 @@ async function run() {
         const task = tasks[taskCid];
         setTimeout(async () => {
             if (task.conf.period) {
+                //FIXME: it might not be needed to put in place try/catch similar to next due to being repeated, but better to do
                 setInterval(() => task.doPeriod(), task.conf.period);
             } else {
                 const id = setInterval(async () => {

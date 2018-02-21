@@ -71,7 +71,7 @@ module.exports = class Task {
                 log.error(err);
                 this.orionOK = false;
             }
-        }, 30000 /*every minute*/);
+        }, 3000 /*every minute*/);
     }
 
     //Create an index in Elasticsearch if it does not exist yet
@@ -183,7 +183,8 @@ module.exports = class Task {
             try {
                 await this.createIndex(index);
             } catch (err) {
-                log.error(err);
+                log.error('feedToElasticsearch', err);
+                return;
             }
 
             for (const attribute of sensor.attributes) {
@@ -377,7 +378,5 @@ module.exports = class Task {
             log.error('catch of doPeriod:', err);
             throw 'doPeriodException'
         }
-
-
     }
 }

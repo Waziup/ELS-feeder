@@ -6,7 +6,7 @@ metadata:
 data:
   default.yaml: |
     endpoint:
-      id: tb2
+      id: oldApi
       url: http://feeder
     elasticsearch:
       host: elasticsearch
@@ -50,7 +50,7 @@ spec:
     spec:
       containers:
       - name: feeder
-        image: waziup/feeder:V3_REL_orionFilter
+        image: waziup/feeder:oldApi
         env:
         - name: FEEDER_EXTRA_CONFIG_DIR
           value: /etc/feeder/

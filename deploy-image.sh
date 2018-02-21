@@ -1,5 +1,5 @@
 echo "Docker building, testing, and pushing"
-version=V3_REL_orionFilter
+version=V4_REL_oldApi
 git tag ${version}
 docker build -t waziup/feeder .
 sleep 3
